@@ -89,7 +89,7 @@ function AppContent() {
       try {
         const pickerHandle = await (window as any).showSaveFilePicker({
           types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
-          suggestedName: fileName || 'mental_plan.md',
+          suggestedName: fileName || 'mdmap_plan.md',
         })
         await saveFile(md, pickerHandle)
         handleRef.current = pickerHandle
@@ -102,7 +102,7 @@ function AppContent() {
         }
       }
     } else {
-      downloadMd(md, fileName || 'mental_plan.md')
+      downloadMd(md, fileName || 'mdmap_plan.md')
       dirtyRef.current = false
       setDirty(false)
     }
