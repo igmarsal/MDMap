@@ -32,8 +32,6 @@ interface NodeData {
 export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeData>) {
   const callbacks = useNodeCallbacks()
   const titleRef = useRef<HTMLInputElement>(null)
-  const bodyRef = useRef<HTMLTextAreaElement>(null)
-  const [bodyVisible, setBodyVisible] = useState(false)
   const fullText = data.text || ''
   const parts = fullText.split('\n')
   const title = parts[0] || ''
@@ -54,11 +52,6 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
       setTimeout(() => titleRef.current?.focus(), 50)
     }
   }, [data.editing, data.text, data.tags, data.developed])
-
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation()
-    setBodyVisible((v) => !v)
-  }, [])
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -107,7 +100,6 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
     callbacks.onDelete(id)
   }, [callbacks, id])
 
-  const bodyRows = Math.max(2, (draftBody.match(/\n/g) || []).length + 2)
   const tagColor = getTagColor(data.tags || [])
   const borderColor = tagColor || (data.developed ? '#10b981' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
   return (
@@ -123,9 +115,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
         outlineOffset: '2px',
         opacity: isDimmed ? 0.3 : 1,
         transition: 'opacity 0.15s',
-        cursor: 'pointer',
       }}
-      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className="relative"
     >
@@ -142,11 +132,10 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             placeholder="Título del nodo..."
           />
           <textarea
-            ref={bodyRef}
             value={draftBody}
             onChange={(e) => setDraftBody(e.target.value)}
             onKeyDown={handleKeyDown}
-            rows={bodyRows}
+            rows={Math.max(2, (draftBody.match(/\n/g) || []).length + 2)}
             className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-y"
             placeholder="Cuerpo del nodo (opcional)..."
           />
@@ -189,11 +178,6 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
             <div className="text-left break-words whitespace-pre-line font-semibold">{title}</div>
           </div>
-          {bodyVisible && body && (
-            <div className="text-left break-words whitespace-pre-line text-xs text-muted-foreground border-t border-border pt-1 mt-1">
-              {body}
-            </div>
-          )}
           {(data.tags || []).length > 0 && (
             <div className="flex flex-wrap justify-center gap-1">
               {data.tags.map((tag) => (

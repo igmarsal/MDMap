@@ -9,7 +9,7 @@
 ### Cambiado
 
 - **Editor de nodos**: ahora muestra dos campos — "Título del nodo" (input) y "Cuerpo del nodo" (textarea multilínea), más etiquetas y checkbox "Desarrollado".
-- **Vista de nodos**: el título se muestra en negrita (`font-semibold`). El cuerpo aparece al hacer clic, con una línea separadora y en texto más pequeño.
+- **Vista de nodos**: el título se muestra en negrita (`font-semibold`). El cuerpo solo se muestra durante la edición (doble clic), no al hacer clic en el nodo, para evitar que el toggle del cuerpo se propague a otros elementos al seleccionar.
 
 ## v0.0.1 (2026-06-23)
 
