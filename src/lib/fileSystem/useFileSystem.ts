@@ -51,10 +51,13 @@ function fallbackOpen(): Promise<{ md: string; state: FileHandleState }> {
     input.type = 'file'
     input.accept = '.md'
 
-    const cleanup = () => window.removeEventListener('focus', onFocus)
+    let done = false
+    let timeoutId: ReturnType<typeof setTimeout> | undefined
 
     input.onchange = async () => {
-      cleanup()
+      if (done) return
+      done = true
+      clearTimeout(timeoutId)
       const file = input.files?.[0]
       if (!file) {
         reject(new Error('No file selected'))
@@ -66,20 +69,15 @@ function fallbackOpen(): Promise<{ md: string; state: FileHandleState }> {
       })
     }
 
-    // El picker nativo de <input type=file> no tiene evento de cancelación
-    // fiable. Cuando el usuario cancela, la ventana recupera el foco sin que
-    // onchange se dispare; lo detectamos y rechazamos con AbortError para que
-    // la UI no quede colgada esperando indefinidamente.
-    const onFocus = () => {
-      setTimeout(() => {
-        if (!input.files || input.files.length === 0) {
-          cleanup()
-          const err = new DOMException('Operación cancelada', 'AbortError')
-          reject(err)
-        }
-      }, 300)
-    }
-    window.addEventListener('focus', onFocus)
+    // Si tras 30 segundos no se ha seleccionado nada, lo tratamos como
+    // cancelación para que la UI no quede colgada. El AbortError es
+    // manejado silenciosamente por handleOpenFile.
+    timeoutId = setTimeout(() => {
+      if (!done) {
+        done = true
+        reject(new DOMException('Operación cancelada', 'AbortError'))
+      }
+    }, 30_000)
 
     input.click()
   })
