@@ -122,7 +122,11 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
       {data.editing ? (
-        <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="space-y-2"
+          onClick={(e) => e.stopPropagation()}
+          style={{ width: 'fit-content', minWidth: '180px', maxWidth: '380px' }}
+        >
           <input
             ref={titleRef}
             value={draftTitle}
@@ -135,7 +139,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             value={draftBody}
             onChange={(e) => setDraftBody(e.target.value)}
             onKeyDown={handleKeyDown}
-            rows={Math.max(2, (draftBody.match(/\n/g) || []).length + 2)}
+            rows={Math.max(1, (draftBody.match(/\n/g) || []).length + 1)}
             className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-y"
             placeholder="Cuerpo del nodo (opcional)..."
           />
