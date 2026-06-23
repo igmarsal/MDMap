@@ -1,4 +1,4 @@
-# Manual de usuario de MDMap v0.0.1
+# Manual de usuario de MDMap v0.1.0
 
 ## Qué es MDMap
 
@@ -53,10 +53,20 @@ Al iniciar la aplicación aparece un mapa inicial con una idea central y dos ram
 
 Haz doble clic sobre un nodo. Se abre un panel con:
 
-- **Texto** del nodo (textarea multilínea).
+- **Título** del nodo (campo de texto, primera línea).
+- **Cuerpo** del nodo (textarea multilínea, visible al hacer clic en el nodo cuando no está en edición).
 - **Etiquetas** separadas por coma.
 - **Check "Desarrollado"**: marca si el nodo está completado. El padre se marca automáticamente si todos sus hijos lo están.
 - **Aceptar** (`Ctrl+Enter`/`Cmd+Enter`) o **Cancelar** (`Escape`).
+
+## Ver cuerpo del nodo
+
+Por defecto los nodos muestran solo el título en negrita. Para ver el cuerpo (si tiene):
+1. Haz clic sobre el nodo.
+2. El cuerpo se despliega debajo del título, separado por una línea.
+3. Vuelve a hacer clic para ocultarlo.
+
+El cuerpo se guarda como líneas de continuación (`|`) en el Markdown.
 
 ## Indicador visual
 
@@ -76,7 +86,8 @@ Colores por defecto: `central` (rojo), `importante` (ámbar), `urgente` (rojo), 
 
 ## Seleccionar, mover y conectar
 
-- **Seleccionar**: haz clic sobre un nodo.
+- **Mostrar cuerpo**: haz clic sobre un nodo para mostrar u ocultar su cuerpo.
+- **Seleccionar**: haz clic sobre el fondo del nodo (zona que no sea el cuerpo) o arrastra una caja de selección con `Shift`.
 - **Selección múltiple**: `Shift` + clic sobre varios nodos.
 - **Mover**: arrastra el nodo dentro del lienzo. Si hay varios seleccionados, se mueven juntos.
 - **Conectar**: arrastra desde el conector inferior de un nodo hasta otro nodo.
@@ -122,22 +133,23 @@ El autoguardado también guarda cambios tras unos segundos de inactividad, solo 
 
 ## Formato Markdown
 
-Los mapas se guardan como listas indentadas:
+Los mapas se guardan como listas indentadas. Cada nodo tiene un título (primera línea con `-`) y un cuerpo opcional (líneas de continuación con `|`).
 
 ```markdown
-- [ ] Idea central #central
-  - [x] Rama completada #hecho
-  - [ ] Rama pendiente #importante
-    | Detalle adicional del nodo
-  - Subrama sin etiquetas
+- [ ] Título del nodo #central
+  | Primera línea del cuerpo
+  | Segunda línea del cuerpo
+  - [x] Hijo completado #hecho
+    | Cuerpo del hijo
 ```
 
 Reglas:
-- Cada línea que empieza con `-` crea un nodo.
+- Cada línea que empieza con `-` crea un nodo (el texto es el título).
 - `[x]` o `[ ]` indican el estado desarrollado.
 - La indentación (2 espacios) determina el nivel.
 - Las etiquetas se escriben con `#`.
-- Las líneas de continuación empiezan con `|`.
+- Las líneas de continuación empiezan con `|` y forman el cuerpo del nodo.
+- El cuerpo se muestra al hacer clic en el nodo.
 
 ## Consejos
 

@@ -1,4 +1,4 @@
-# Manual de administrador de MDMap v0.0.1
+# Manual de administrador de MDMap v0.1.0
 
 ## Visión general
 

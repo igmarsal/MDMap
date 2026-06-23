@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.1.0 (2026-06-23)
+
+### Nuevo
+
+- **Título y cuerpo separados en nodos**: el texto del nodo se divide en título (primera línea) y cuerpo (resto). Por defecto solo se ve el título. Al hacer clic en el nodo se despliega el cuerpo. Doble clic para editar ambos campos por separado. El formato Markdown usa `- Título` y `| cuerpo` para las líneas de continuación, manteniendo compatibilidad con versiones anteriores.
+
+### Cambiado
+
+- **Editor de nodos**: ahora muestra dos campos — "Título del nodo" (input) y "Cuerpo del nodo" (textarea multilínea), más etiquetas y checkbox "Desarrollado".
+- **Vista de nodos**: el título se muestra en negrita (`font-semibold`). El cuerpo aparece al hacer clic, con una línea separadora y en texto más pequeño.
+
 ## v0.0.1 (2026-06-23)
 
 Versión inicial de MDMap.

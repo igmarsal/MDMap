@@ -1,4 +1,4 @@
-# MDMap v0.0.1
+# MDMap v0.1.0
 
 MDMap es una aplicación web para crear mapas mentales en formato Markdown. Permite editar nodos visualmente, organizar ideas en ramas, abrir y guardar archivos `.md`, y usar etiquetas para clasificar conceptos.
 
@@ -37,7 +37,7 @@ npm run build
 node scripts/compilar-aplicacion.mjs
 ```
 
-El script genera `release/MDMap_v0.0.1.zip` con el servidor standalone incluido.
+El script genera `release/MDMap_v0.1.0.zip` con el servidor standalone incluido.
 
 ## Ejecutar versión compilada
 
@@ -72,6 +72,7 @@ npm run preview
 
 ## Características
 
+- **Título y cuerpo separados**: el título se muestra siempre en negrita; el cuerpo se despliega al hacer clic en el nodo.
 - **Nodos desarrollados**: marca `[x]`/`[ ]` en el editor. El padre se marca automáticamente si todos sus hijos lo están.
 - **Búsqueda**: filtra nodos por texto o etiqueta desde la barra superior.
 - **Minimapa**: auto-ocultable en la esquina inferior izquierda.
@@ -107,10 +108,11 @@ src/
 ## Formato Markdown
 
 ```markdown
-- Idea central #central
+- [ ] Idea central #central
+  | Cuerpo opcional de la idea central
   - [x] Rama completada #hecho
+    | Detalle del cuerpo
   - [ ] Rama pendiente #importante
-    | Detalle adicional
 ```
 
 ## Changelog

@@ -31,20 +31,34 @@ interface NodeData {
 
 export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeData>) {
   const callbacks = useNodeCallbacks()
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const [draftText, setDraftText] = useState(data.text)
+  const titleRef = useRef<HTMLInputElement>(null)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+  const [bodyVisible, setBodyVisible] = useState(false)
+  const fullText = data.text || ''
+  const parts = fullText.split('\n')
+  const title = parts[0] || ''
+  const body = parts.slice(1).join('\n')
+  const [draftTitle, setDraftTitle] = useState(title)
+  const [draftBody, setDraftBody] = useState(body)
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
   const [draftDeveloped, setDraftDeveloped] = useState(!!data.developed)
   const isDimmed = (data as any).dimmed === true
 
   useEffect(() => {
     if (data.editing) {
-      setDraftText(data.text)
+      const p = (data.text || '').split('\n')
+      setDraftTitle(p[0] || '')
+      setDraftBody(p.slice(1).join('\n'))
       setDraftTags((data.tags || []).join(', '))
       setDraftDeveloped(!!data.developed)
-      setTimeout(() => textareaRef.current?.focus(), 50)
+      setTimeout(() => titleRef.current?.focus(), 50)
     }
   }, [data.editing, data.text, data.tags, data.developed])
+
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    setBodyVisible((v) => !v)
+  }, [])
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
@@ -52,20 +66,22 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
   }, [callbacks, id])
 
   const acceptEdit = useCallback(() => {
-    const text = draftText.trim()
+    const text = (draftTitle.trim() + '\n' + draftBody).replace(/\n+$/, '').trim()
     if (text) {
       const tags = draftTags
         .split(/[,\s]+/)
         .map((t) => t.replace(/^#/, '').trim())
         .filter((t) => t.length > 0)
-      callbacks.onEdit(id, draftText, tags, draftDeveloped)
+      callbacks.onEdit(id, text, tags, draftDeveloped)
     } else {
       callbacks.onStopEdit(id)
     }
-  }, [callbacks, draftText, draftTags, draftDeveloped, id])
+  }, [callbacks, draftTitle, draftBody, draftTags, draftDeveloped, id])
 
   const cancelEdit = useCallback(() => {
-    setDraftText(data.text)
+    const p = (data.text || '').split('\n')
+    setDraftTitle(p[0] || '')
+    setDraftBody(p.slice(1).join('\n'))
     setDraftTags((data.tags || []).join(', '))
     callbacks.onStopEdit(id)
   }, [callbacks, data.text, data.tags, id])
@@ -91,7 +107,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
     callbacks.onDelete(id)
   }, [callbacks, id])
 
-  const rows = Math.max(2, (draftText.match(/\n/g) || []).length + 2)
+  const bodyRows = Math.max(2, (draftBody.match(/\n/g) || []).length + 2)
   const tagColor = getTagColor(data.tags || [])
   const borderColor = tagColor || (data.developed ? '#10b981' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
   return (
@@ -107,7 +123,9 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
         outlineOffset: '2px',
         opacity: isDimmed ? 0.3 : 1,
         transition: 'opacity 0.15s',
+        cursor: 'pointer',
       }}
+      onClick={handleClick}
       onDoubleClick={handleDoubleClick}
       className="relative"
     >
@@ -115,14 +133,22 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
 
       {data.editing ? (
         <div className="space-y-2" onClick={(e) => e.stopPropagation()}>
-          <textarea
-            ref={textareaRef}
-            value={draftText}
-            onChange={(e) => setDraftText(e.target.value)}
+          <input
+            ref={titleRef}
+            value={draftTitle}
+            onChange={(e) => setDraftTitle(e.target.value)}
             onKeyDown={handleKeyDown}
-            rows={rows}
-            className="w-full bg-background border border-border rounded p-2 text-foreground outline-none focus:ring-2 focus:ring-primary resize-y"
-            placeholder="Texto del nodo..."
+            className="w-full bg-background border border-border rounded p-2 text-foreground text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
+            placeholder="Título del nodo..."
+          />
+          <textarea
+            ref={bodyRef}
+            value={draftBody}
+            onChange={(e) => setDraftBody(e.target.value)}
+            onKeyDown={handleKeyDown}
+            rows={bodyRows}
+            className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-y"
+            placeholder="Cuerpo del nodo (opcional)..."
           />
           <input
             value={draftTags}
@@ -158,11 +184,16 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
           </div>
         </div>
       ) : (
-        <div className="space-y-1">
+        <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-start gap-1.5">
             <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
-            <div className="text-left break-words whitespace-pre-line">{data.text}</div>
+            <div className="text-left break-words whitespace-pre-line font-semibold">{title}</div>
           </div>
+          {bodyVisible && body && (
+            <div className="text-left break-words whitespace-pre-line text-xs text-muted-foreground border-t border-border pt-1 mt-1">
+              {body}
+            </div>
+          )}
           {(data.tags || []).length > 0 && (
             <div className="flex flex-wrap justify-center gap-1">
               {data.tags.map((tag) => (
