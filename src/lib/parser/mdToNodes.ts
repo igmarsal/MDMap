@@ -50,6 +50,9 @@ export function mdToNodes(md: string): MindMapNode[] {
     }
 
     const { text: cleanText, tags } = parseTags(text)
+    const developedMatch = cleanText.match(/^\[([ x])\]\s*/)
+    const developed = developedMatch ? developedMatch[1] === 'x' : false
+    const finalText = developedMatch ? cleanText.slice(developedMatch[0].length) : cleanText
     const id = generateId()
     let parent: string | null = null
 
@@ -58,7 +61,7 @@ export function mdToNodes(md: string): MindMapNode[] {
     }
 
     parent = parentStack[parentStack.length - 1].id
-    const node = { id, text: cleanText, level, parent, tags }
+    const node = { id, text: finalText, level, parent, tags, developed }
     parsed.push(node)
     parentStack.push({ level, id })
     lastNodeByLevel.set(level, node)
@@ -73,6 +76,7 @@ export function mdToNodes(md: string): MindMapNode[] {
     children: parsed.filter((c) => c.parent === p.id).map((c) => c.id),
     position: positions[p.id] || { x: 0, y: 0 },
     tags: p.tags,
+    developed: p.developed,
   }))
 }
 

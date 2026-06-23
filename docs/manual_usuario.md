@@ -1,4 +1,4 @@
-# Manual de usuario de MDMap
+# Manual de usuario de MDMap v0.0.1
 
 ## Qué es MDMap
 
@@ -8,165 +8,111 @@ MDMap es una aplicación para crear mapas mentales visuales y guardarlos como ar
 
 ### Modo desarrollo
 
-Ejecuta:
-
 ```bash
 npm run dev
 ```
 
-Después abre:
-
-```text
-http://localhost:5173
-```
+Abrir `http://localhost:5173`.
 
 ### Modo compilado
-
-Ejecuta:
 
 ```bash
 npm run build
 npm run preview
 ```
 
-La vista previa se abre normalmente en:
+O usar el script de `scripts/` correspondiente al sistema operativo.
 
-```text
-http://127.0.0.1:4173
+### Modo standalone (sin dependencias)
+
+```bash
+cd release/MDMap
+node server.mjs
 ```
 
-También puedes usar el script de arranque de la carpeta `scripts/`.
+Abrir `http://127.0.0.1:4173`.
 
 ## Interfaz principal
 
-La pantalla se divide en estas zonas:
-
-- Barra superior: permite abrir, guardar y ver el archivo activo.
-- Barra de herramientas: permite añadir nodos, copiar, pegar y borrar.
-- Lienzo central: muestra los nodos y las conexiones del mapa mental.
-- Minimapa y controles de zoom: ayudan a moverse por mapas grandes.
+- **Barra superior**: muestra el archivo activo (con indicador verde si hay un archivo abierto). Incluye botones **Abrir .md**, **Guardar** y campo de búsqueda.
+- **Barra de herramientas flotante**: permite añadir nodos raíz, hijos, copiar, pegar y borrar.
+- **Lienzo central**: muestra los nodos y las conexiones del mapa mental.
+- **Minimapa y controles de zoom**: aparecen al pasar el ratón por la esquina inferior izquierda.
 
 ## Crear un mapa
 
 Al iniciar la aplicación aparece un mapa inicial con una idea central y dos ramas.
 
-Para crear un nodo raíz:
+**Nodo raíz**: pulsa **+ Raíz** en la barra de herramientas.
 
-1. Pulsa **Raíz** en la barra de herramientas.
-2. Se creará un nuevo nodo independiente.
-
-Para crear un hijo de un nodo:
-
+**Nodo hijo**:
 1. Selecciona el nodo padre.
-2. Pulsa **Hijo** en la barra de herramientas.
-3. También puedes pulsar el botón `+` que aparece sobre el nodo seleccionado.
+2. Pulsa **+ Hijo** en la barra de herramientas, o el botón `+` sobre el nodo seleccionado.
 
 ## Editar nodos
 
-Para editar un nodo:
+Haz doble clic sobre un nodo. Se abre un panel con:
 
-1. Haz doble clic sobre el nodo.
-2. Escribe el texto.
-3. Añade etiquetas si las necesitas.
-4. Pulsa **Aceptar** o usa `Ctrl + Enter` / `Cmd + Enter`.
+- **Texto** del nodo (textarea multilínea).
+- **Etiquetas** separadas por coma.
+- **Check "Desarrollado"**: marca si el nodo está completado. El padre se marca automáticamente si todos sus hijos lo están.
+- **Aceptar** (`Ctrl+Enter`/`Cmd+Enter`) o **Cancelar** (`Escape`).
 
-Para cancelar la edición, pulsa **Cancelar** o `Escape`.
+## Indicador visual
 
-Si el texto queda vacío, la edición se cancela y el nodo no se guarda.
+Cada nodo muestra:
+- ✅ / ⬜ (desarrollado / no desarrollado).
+- Borde de color según nivel y etiqueta. Los nodos desarrollados usan borde verde.
 
 ## Etiquetas
 
-Las etiquetas se escriben separadas por coma en el campo de edición del nodo.
-
-Ejemplos:
-
-```text
-central, importante, urgente
-```
-
-También puedes escribirlas directamente en Markdown usando `#`:
+Se escriben separadas por coma en el editor, o directamente en Markdown con `#`:
 
 ```markdown
 - Tarea importante #importante #urgente
 ```
 
-Etiquetas disponibles por defecto:
-
-- `central`
-- `importante`
-- `urgente`
-- `idea`
-- `hecho`
-- `pregunta`
-- `decision`
-
-Si una etiqueta no coincide con una de estas, se muestra con un color genérico.
+Colores por defecto: `central` (rojo), `importante` (ámbar), `urgente` (rojo), `idea` (azul), `hecho` (verde), `pregunta` (púrpura), `decision` (rosa).
 
 ## Seleccionar, mover y conectar
 
-Para seleccionar un nodo, haz clic sobre él.
-
-Para mover un nodo, arrástralo dentro del lienzo.
-
-Para conectar nodos manualmente:
-
-1. Selecciona el nodo origen.
-2. Arrastra desde su conector hasta el nodo destino.
-3. Se creará una conexión.
+- **Seleccionar**: haz clic sobre un nodo.
+- **Selección múltiple**: `Shift` + clic sobre varios nodos.
+- **Mover**: arrastra el nodo dentro del lienzo. Si hay varios seleccionados, se mueven juntos.
+- **Conectar**: arrastra desde el conector inferior de un nodo hasta otro nodo.
 
 ## Copiar y pegar
 
-Para copiar un nodo:
+1. Selecciona uno o varios nodos (`Shift+Click` para varios).
+2. `Ctrl+C` / **Copiar**. La selección original se limpia automáticamente.
+3. `Ctrl+V` / **Pegar**. Los nodos copiados aparecen ligeramente desplazados y quedan seleccionados.
 
-1. Selecciona el nodo.
-2. Pulsa **Copiar** o `Ctrl + C` / `Cmd + C`.
-
-La copia incluye el nodo seleccionado y todos sus descendientes.
-
-Para pegar:
-
-1. Pulsa **Pegar** o `Ctrl + V` / `Cmd + V`.
-2. El bloque copiado aparecerá desplazado ligeramente respecto a la posición original.
+La copia incluye los nodos seleccionados y todos sus descendientes.
 
 ## Borrar nodos
 
-Para borrar un nodo:
+Selecciona el nodo y pulsa `Delete` o **✕ Borrar**. Si tiene descendientes, la aplicación pide confirmación.
 
-1. Selecciona el nodo.
-2. Pulsa **Borrar** o la tecla `Delete`.
+## Búsqueda
 
-Si el nodo tiene descendientes, la aplicación pedirá confirmación antes de eliminar toda la rama.
+Escribe en el campo de búsqueda de la barra superior. Los nodos que no coinciden se atenúan visualmente.
 
 ## Abrir archivos Markdown
 
-Pulsa **Abrir .md** en la barra superior.
+Pulsa **Abrir .md** en la barra superior. Si ya hay un archivo abierto, el botón muestra **Cambiar archivo...**.
 
-En navegadores compatibles se abrirá el selector de archivos del sistema. En otros navegadores se usará un selector de archivo tradicional.
-
-La aplicación acepta archivos con extensión `.md`.
-
-## Abrir desde carpeta
-
-Pulsa **Abrir carpeta** para elegir una carpeta. La aplicación intentará abrir o crear un archivo llamado:
-
-```text
-mdmap_plan.md
-```
-
-Si la carpeta ya contiene ese archivo, se cargará su contenido.
+El archivo queda vinculado: al pulsar **Guardar** se escribe directamente en el mismo archivo sin mostrar el selector de nuevo.
 
 ## Guardar
 
-Pulsa **Guardar** en la barra superior.
+Pulsa **Guardar** en la barra superior. Si hay un archivo abierto, se guarda directamente. Si no, se muestra el selector para elegir ubicación.
 
-Si el navegador permite acceso directo al sistema de archivos, MDMap guarda el archivo en la ubicación seleccionada. Si no lo permite, descargará un archivo `.md`.
-
-El autoguardado también intenta guardar cambios después de unos segundos.
+El autoguardado también guarda cambios tras unos segundos de inactividad, solo si hay un archivo abierto.
 
 ## Atajos de teclado
 
 | Acción | Atajo |
-|---|---|
+|--------|-------|
 | Guardar | `Ctrl + S` / `Cmd + S` |
 | Copiar | `Ctrl + C` / `Cmd + C` |
 | Pegar | `Ctrl + V` / `Cmd + V` |
@@ -176,37 +122,26 @@ El autoguardado también intenta guardar cambios después de unos segundos.
 
 ## Formato Markdown
 
-MDMap guarda los mapas como listas indentadas.
-
-Ejemplo:
+Los mapas se guardan como listas indentadas:
 
 ```markdown
-- Idea central #central
-  - Rama 1 #idea
-  - Rama 2
-    - Subrama 1
+- [ ] Idea central #central
+  - [x] Rama completada #hecho
+  - [ ] Rama pendiente #importante
+    | Detalle adicional del nodo
+  - Subrama sin etiquetas
 ```
 
-Reglas útiles:
-
+Reglas:
 - Cada línea que empieza con `-` crea un nodo.
-- La indentación determina el nivel.
-- Se recomiendan 2 espacios por nivel.
+- `[x]` o `[ ]` indican el estado desarrollado.
+- La indentación (2 espacios) determina el nivel.
 - Las etiquetas se escriben con `#`.
 - Las líneas de continuación empiezan con `|`.
-
-Ejemplo con continuación:
-
-```markdown
-- Idea central
-  | Detalle adicional
-  | Otro detalle
-  - Rama 1
-```
 
 ## Consejos
 
 - Usa una sola idea central cuando el mapa sea pequeño.
 - Usa varios nodos raíz cuando necesites separar temas.
-- Usa etiquetas para identificar tareas, preguntas o decisiones.
+- Usa `[x]`/`[ ]` para marcar progreso.
 - Guarda el archivo con frecuencia si el navegador no permite acceso directo al sistema de archivos.

@@ -6,6 +6,7 @@ export interface MindMapNode {
   children: string[]
   position: { x: number; y: number }
   tags: string[]
+  developed: boolean
 }
 
 export interface ParsedNode {
@@ -14,4 +15,5 @@ export interface ParsedNode {
   level: number
   parent: string | null
   tags: string[]
+  developed: boolean
 }

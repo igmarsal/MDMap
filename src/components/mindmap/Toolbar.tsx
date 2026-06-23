@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/Button'
 
 interface ToolbarProps {
-  selectedNodeId: string | null
+  selectedNodeIds: Set<string>
   editingNodeId: string | null
   hasClipboard: boolean
   onAddRoot: () => void
@@ -11,9 +11,9 @@ interface ToolbarProps {
   onPaste: () => void
 }
 
-export default function Toolbar({ selectedNodeId, editingNodeId, hasClipboard, onAddRoot, onAddChild, onDelete, onCopy, onPaste }: ToolbarProps) {
+export default function Toolbar({ selectedNodeIds, editingNodeId, hasClipboard, onAddRoot, onAddChild, onDelete, onCopy, onPaste }: ToolbarProps) {
   const isEditing = !!editingNodeId
-  const hasSelection = !!selectedNodeId
+  const hasSelection = selectedNodeIds.size > 0
 
   return (
     <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-card border border-border rounded-lg p-2 shadow-lg">

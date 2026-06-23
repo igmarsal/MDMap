@@ -1,13 +1,11 @@
-# MDMap
+# MDMap v0.0.1
 
 MDMap es una aplicación web para crear mapas mentales en formato Markdown. Permite editar nodos visualmente, organizar ideas en ramas, abrir y guardar archivos `.md`, y usar etiquetas para clasificar conceptos.
 
 ## Tecnologías
 
-- React 19
-- TypeScript
-- Vite
-- React Flow
+- React 19 + TypeScript
+- Vite + React Flow
 - Tailwind CSS v4
 
 ## Requisitos
@@ -29,27 +27,55 @@ npm run dev
 
 La aplicación se abre en `http://localhost:5173`.
 
-## Compilación
+## Compilación para producción
 
 ```bash
+# Build estándar (genera dist/)
 npm run build
+
+# Script completo: build + copia a release/ + genera ZIP
+node scripts/compilar-aplicacion.mjs
 ```
 
-Los archivos generados se publican en la carpeta `dist`.
+El script genera `release/MDMap_v0.0.1.zip` con el servidor standalone incluido.
 
-## Vista previa de la aplicación compilada
+## Ejecutar versión compilada
 
 ```bash
+# Con el servidor standalone (sin dependencias)
+cd release/MDMap
+node server.mjs
+
+# O con Vite preview
 npm run preview
+
+# O simplemente abrir dist/index.html en el navegador
 ```
+
+## Scripts multiplataforma
+
+| Sistema | Archivo |
+|---------|---------|
+| Windows | `scripts/compilar-aplicacion.bat` |
+| macOS | `scripts/compilar-aplicacion.command` |
+| Linux | `scripts/compilar-aplicacion.sh` |
 
 ## Uso rápido
 
 1. Abre la aplicación.
 2. Haz doble clic en un nodo para editarlo.
-3. Escribe el texto y pulsa `Ctrl + Enter` o `Cmd + Enter` para aceptar.
+3. Escribe el texto y pulsa `Ctrl + Enter` / `Cmd + Enter` para aceptar.
 4. Añade nodos con los botones de la barra superior o desde el nodo seleccionado.
 5. Guarda el mapa como Markdown con el botón **Guardar**.
+6. Usa `Ctrl+C`/`Ctrl+V` para copiar y pegar nodos.
+7. `Shift+Click` para selección múltiple.
+
+## Características
+
+- **Nodos desarrollados**: marca `[x]`/`[ ]` en el editor. El padre se marca automáticamente si todos sus hijos lo están.
+- **Búsqueda**: filtra nodos por texto o etiqueta desde la barra superior.
+- **Minimapa**: auto-ocultable en la esquina inferior izquierda.
+- **Formato Markdown**: los mapas se guardan como listas indentadas (`-`), con soporte para etiquetas (`#tag`) y líneas de continuación (`|`).
 
 ## Estructura principal
 
@@ -68,37 +94,25 @@ src/
   stores/                         Contexto de mapa mental
 ```
 
-## Archivos Markdown
+## Archivos clave
 
-Los mapas se guardan como listas Markdown indentadas:
+| Archivo | Propósito |
+|---------|-----------|
+| `server.mjs` | Servidor HTTP standalone (sin dependencias) |
+| `scripts/compilar-aplicacion.mjs` | Script de build + release |
+| `docs/changelog.md` | Historial de versiones |
+| `docs/manual_usuario.md` | Manual de usuario |
+| `docs/manual_administrador.md` | Manual de administrador |
 
-```markdown
-- Idea central
-  - Rama 1
-  - Rama 2
-```
-
-También puedes usar etiquetas:
+## Formato Markdown
 
 ```markdown
 - Idea central #central
-  - Tarea importante #importante
+  - [x] Rama completada #hecho
+  - [ ] Rama pendiente #importante
+    | Detalle adicional
 ```
 
-Las líneas de continuación se escriben con `|`:
+## Changelog
 
-```markdown
-- Idea central
-  | Detalle adicional del nodo
-  - Rama 1
-```
-
-## Script de compilación multiplataforma
-
-En `scripts/` hay ejecutables para compilar la aplicación y abrirla en el navegador:
-
-- Windows: `scripts/compilar-aplicacion.bat`
-- macOS: `scripts/compilar-aplicacion.command`
-- Linux: `scripts/compilar-aplicacion.sh`
-
-El script ejecuta `npm run build`, genera un ZIP portable en `release/`, inicia la vista previa en `http://127.0.0.1:4173` y abre esa URL en el navegador predeterminado.
+Ver [docs/changelog.md](docs/changelog.md).

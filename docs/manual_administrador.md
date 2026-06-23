@@ -1,93 +1,58 @@
-# Manual de administrador de MDMap
+# Manual de administrador de MDMap v0.0.1
 
 ## Visión general
 
-MDMap es una aplicación frontend construida con React, TypeScript, Vite, React Flow y Tailwind CSS. No requiere servidor backend para funcionar en modo local. La persistencia se realiza mediante archivos Markdown abiertos desde el navegador.
+MDMap es una aplicación frontend construida con React, TypeScript, Vite, React Flow y Tailwind CSS. No requiere servidor backend. La persistencia se realiza mediante archivos Markdown abiertos desde el navegador.
 
 ## Requisitos del entorno
 
 - Node.js 20 o superior
 - npm
-- Navegador moderno basado en Chromium para acceso completo a archivos locales
+- Navegador basado en Chromium para acceso completo a archivos locales (Chrome, Edge, Brave)
 
-Navegadores recomendados:
-
-- Google Chrome
-- Microsoft Edge
-- Brave
-- Chromium
-
-La API de acceso al sistema de archivos permite abrir y guardar archivos directamente. En navegadores no compatibles, la aplicación usa descarga de archivos como alternativa.
+En navegadores no compatibles con File System Access API, la apertura usa selector de archivo tradicional y el guardado usa descarga.
 
 ## Instalación
-
-Desde la carpeta principal del proyecto:
 
 ```bash
 npm install
 ```
 
-El archivo `package-lock.json` fija las versiones instaladas. Se recomienda usarlo para mantener consistencia entre equipos.
-
 ## Comandos disponibles
 
 ```bash
-npm run dev
-npm run build
-npm run preview
+npm run dev       # Desarrollo con recarga automática
+npm run build     # Compilación a dist/
+npm run preview   # Vista previa de dist/
 ```
-
-### Desarrollo
-
-```bash
-npm run dev
-```
-
-Inicia Vite en modo desarrollo con recarga automática.
-
-### Compilación
-
-```bash
-npm run build
-```
-
-Ejecuta TypeScript y genera la aplicación en la carpeta `dist`.
-
-### Vista previa
-
-```bash
-npm run preview
-```
-
-Sirve la carpeta `dist` en modo local.
 
 ## Script multiplataforma
 
-En la carpeta `scripts/` se incluyen ejecutables para compilar la aplicación, generar un ZIP portable y abrirla en el navegador:
+En `scripts/` se incluyen ejecutables para compilar y empaquetar la aplicación:
 
 | Sistema | Archivo |
-|---|---|
+|---------|---------|
 | Windows | `scripts/compilar-aplicacion.bat` |
 | macOS | `scripts/compilar-aplicacion.command` |
 | Linux | `scripts/compilar-aplicacion.sh` |
 
-El flujo del script es:
+**Flujo del script**:
+1. Ejecuta `npm install` si falta `node_modules`.
+2. Ejecuta `npm run build`.
+3. Lee la versión desde `package.json`.
+4. Copia `dist/` + `server.mjs` a `release/MDMap/`.
+5. Genera `release/MDMap_vX.X.X.zip`.
 
-1. Comprueba que Node.js y npm estén disponibles.
-2. Ejecuta `npm install` si falta `node_modules`.
-3. Ejecuta `npm run build`.
-4. Genera un ZIP portable en `release/MDMap-<fecha>.zip`.
-5. Inicia `npm run preview -- --host 127.0.0.1 --port 4173`.
-6. Abre `http://127.0.0.1:4173` en el navegador predeterminado.
+## Servidor standalone
 
-## Permisos de ejecución
-
-En macOS y Linux puede ser necesario dar permiso de ejecución:
+El archivo `server.mjs` es un servidor HTTP sin dependencias externas (solo módulos nativos de Node.js). Se incluye en el ZIP de release.
 
 ```bash
-chmod +x scripts/compilar-aplicacion.sh
-chmod +x scripts/compilar-aplicacion.command
+cd ruta/de/la/aplicacion
+node server.mjs [puerto] [host]
 ```
+
+Por defecto sirve en `http://127.0.0.1:4173`.
 
 ## Estructura del proyecto
 
@@ -98,11 +63,18 @@ src/
     FileBar.tsx                   Barra de apertura y guardado
     MarkdownEditor/               Editor y vista previa Markdown
     mindmap/                      Lienzo, nodos, bordes y toolbar
-  hooks/                          Atajos de teclado y autoguardado
+      MindMapCanvas.tsx           Lienzo React Flow con auto-ocultación
+      NodeComponent.tsx           Nodo personalizado con editor y checkbox
+      Toolbar.tsx                 Barra de herramientas flotante
+      EdgeComponent.tsx           Arista personalizada
+      NodeCallbacksContext.tsx     Contexto de callbacks de nodo
+  hooks/
+    useKeyboardShortcuts.ts       Atajos de teclado
+    useAutoSave.ts                Autoguardado diferido
   lib/
-    compiler/nodesToMd.ts         Conversión de nodos a Markdown
-    fileSystem/useFileSystem.ts   Acceso a archivos locales
-    parser/mdToNodes.ts           Conversión de Markdown a nodos
+    compiler/nodesToMd.ts         Nodos → Markdown
+    fileSystem/useFileSystem.ts   Apertura/guardado de archivos
+    parser/mdToNodes.ts           Markdown → nodos
   stores/useMindMapStore.tsx      Contexto de estado
   main.tsx                        Punto de entrada
   index.css                       Estilos y tema Tailwind
@@ -112,83 +84,46 @@ src/
 
 ### `src/App.tsx`
 
-Coordina el estado del mapa:
-
-- Nodos y conexiones.
-- Archivo activo.
-- Estado de cambios sin guardar.
-- Apertura y guardado.
-- Copiar, pegar, añadir y eliminar nodos.
-- Conversión entre nodos y Markdown.
+Coordina el estado del mapa, nodos, conexiones, archivo activo, copiar/pegar, añadir/eliminar nodos, y conversión entre nodos y Markdown.
 
 ### `src/lib/parser/mdToNodes.ts`
 
-Convierte Markdown indentado en nodos del mapa mental.
-
-Funciones principales:
-
-- `parseIndentation`
-- `parseTags`
-- `mdToNodes`
-- `calculateLayout`
+Convierte Markdown indentado en nodos. Funciones: `parseIndentation`, `parseTags`, `mdToNodes`, `calculateLayout`. Soporta `[x]`/`[ ]` para estado desarrollado.
 
 ### `src/lib/compiler/nodesToMd.ts`
 
-Convierte nodos del mapa mental en Markdown.
-
-Funciones principales:
-
-- `formatNodeText`
-- `nodesToMd`
+Convierte nodos en Markdown. Funciones: `formatNodeText`, `nodesToMd`. Serializa `[x]`/`[ ]`.
 
 ### `src/lib/fileSystem/useFileSystem.ts`
 
-Gestiona la apertura y guardado de archivos.
-
-Funciones principales:
-
-- `openFile`
-- `saveFile`
-- `openDirectory`
-- `fallbackOpen`
+Gestiona apertura y guardado de archivos. Usa `showOpenFilePicker`/`showSaveFilePicker` (File System Access API). Incluye `fallbackOpen` para navegadores no compatibles.
 
 ## Criterios de aceptación para nuevas versiones
 
-Antes de entregar una versión:
-
-1. Ejecutar `npm install`.
-2. Ejecutar `npm run build`.
-3. Abrir la aplicación en un navegador moderno.
-4. Crear un mapa con nodos, etiquetas y ramas.
-5. Guardar en `.md`.
-6. Recargar la aplicación.
-7. Abrir el archivo `.md` guardado.
-8. Confirmar que el mapa se reconstruye correctamente.
-9. Comprobar copiar, pegar y borrar una rama.
+1. `npm run build` sin errores.
+2. Abrir la aplicación en Chrome y Firefox.
+3. Crear un mapa con nodos, etiquetas y ramas.
+4. Marcar/desmarcar estado desarrollado en varios nodos.
+5. Verificar que el padre se actualiza automáticamente.
+6. Guardar el `.md` y recargar la aplicación.
+7. Abrir el `.md` guardado y confirmar que el mapa se reconstruye.
+8. Probar copiar/pegar con selección simple y múltiple.
+9. Probar borrar con y sin confirmación.
+10. Usar el buscador y verificar el atenuado de nodos.
+11. Ejecutar `node scripts/compilar-aplicacion.mjs` y verificar el ZIP.
 
 ## Despliegue estático
 
-Como la aplicación es estática, puede publicarse en cualquier hosting que sirva archivos estáticos.
-
-Ejemplo de publicación:
-
-```bash
-npm run build
-```
-
-Subir el contenido de la carpeta `dist` al servidor.
+La aplicación es completamente estática. Publicar el contenido de `dist/` (o `release/MDMap/` sin `server.mjs`) en cualquier servidor web.
 
 ## Limitaciones conocidas
 
-- El acceso directo a archivos requiere navegadores compatibles con File System Access API.
-- En navegadores no compatibles, la apertura usa selector de archivo y el guardado usa descarga.
-- No existe autenticación de usuarios.
-- No existe sincronización en la nube.
-- Los archivos se guardan localmente en Markdown.
+- El acceso directo a archivos requiere navegadores con File System Access API.
+- En navegadores no compatibles, el guardado usa descarga (crea un archivo nuevo cada vez).
+- No existe autenticación ni sincronización en la nube.
+- `Tab` para añadir sibling/child no está implementado.
 
 ## Mantenimiento
-
-Actualizaciones de dependencias:
 
 ```bash
 npm update
@@ -196,49 +131,38 @@ npm install
 npm run build
 ```
 
-Después de actualizar dependencias, comprobar manualmente:
-
+Después de actualizar dependencias, verificar:
 - Arranque de desarrollo.
 - Compilación de producción.
-- Apertura de Markdown.
-- Guardado de Markdown.
+- Apertura y guardado de Markdown.
 - Funcionamiento de React Flow.
 
 ## Solución de problemas
 
-### Fallo en `npm install`
-
-Eliminar dependencias instaladas y volver a instalar:
+### `npm install` falla
 
 ```bash
 rm -rf node_modules package-lock.json
 npm install
 ```
 
-En Windows, usar PowerShell o eliminar manualmente la carpeta `node_modules`.
-
 ### Fallo en compilación
-
-Ejecutar:
 
 ```bash
 npm run build
 ```
 
-Revisar errores de TypeScript y corregir el archivo indicado.
+Revisar errores de TypeScript.
 
 ### La aplicación no guarda en la misma ruta
 
-Comprobar que el navegador sea compatible con File System Access API y que el usuario conceda permiso de escritura.
+El navegador debe ser compatible con File System Access API y el usuario debe conceder permiso de escritura. Tras abrir un `.md`, el Guardar escribe directamente al mismo archivo.
 
-### El archivo Markdown no se interpreta correctamente
+### El Markdown no se interpreta correctamente
 
-Revisar que el formato use listas indentadas:
+Formato esperado:
 
 ```markdown
-- Idea central
-  - Rama 1
-  - Rama 2
+- [ ] Idea central
+  - [x] Rama completada
 ```
-
-Cada nodo debe empezar con `-` y la indentación debe usar espacios, preferiblemente de dos en dos.

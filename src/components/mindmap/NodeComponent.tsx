@@ -1,5 +1,6 @@
-import { memo, useRef, useEffect, useState } from 'react'
+import { memo, useRef, useEffect, useState, useCallback } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
+import { useNodeCallbacks } from './NodeCallbacksContext'
 
 const levelColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 const tagColors: Record<string, string> = {
@@ -25,52 +26,51 @@ interface NodeData {
   level: number
   tags: string[]
   editing?: boolean
-  onAddChild?: () => void
-  onDelete?: () => void
-  onEdit?: (text: string, tags: string[]) => void
-  onSelect?: () => void
-  onStartEdit?: () => void
-  onStopEdit?: () => void
+  developed?: boolean
 }
 
-export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>) {
+export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeData>) {
+  const callbacks = useNodeCallbacks()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [draftText, setDraftText] = useState(data.text)
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
+  const [draftDeveloped, setDraftDeveloped] = useState(!!data.developed)
+  const isDimmed = (data as any).dimmed === true
 
   useEffect(() => {
     if (data.editing) {
       setDraftText(data.text)
       setDraftTags((data.tags || []).join(', '))
+      setDraftDeveloped(!!data.developed)
       setTimeout(() => textareaRef.current?.focus(), 50)
     }
-  }, [data.editing, data.text, data.tags])
+  }, [data.editing, data.text, data.tags, data.developed])
 
-  const handleDoubleClick = (e: React.MouseEvent) => {
+  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
-    data.onStartEdit?.()
-  }
+    callbacks.onStartEdit(id)
+  }, [callbacks, id])
 
-  const acceptEdit = () => {
+  const acceptEdit = useCallback(() => {
     const text = draftText.trim()
     if (text) {
       const tags = draftTags
         .split(/[,\s]+/)
         .map((t) => t.replace(/^#/, '').trim())
         .filter((t) => t.length > 0)
-      data.onEdit?.(draftText, tags)
+      callbacks.onEdit(id, draftText, tags, draftDeveloped)
     } else {
-      data.onStopEdit?.()
+      callbacks.onStopEdit(id)
     }
-  }
+  }, [callbacks, draftText, draftTags, draftDeveloped, id])
 
-  const cancelEdit = () => {
+  const cancelEdit = useCallback(() => {
     setDraftText(data.text)
     setDraftTags((data.tags || []).join(', '))
-    data.onStopEdit?.()
-  }
+    callbacks.onStopEdit(id)
+  }, [callbacks, data.text, data.tags, id])
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Escape') {
       e.preventDefault()
       cancelEdit()
@@ -79,12 +79,21 @@ export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>
       e.preventDefault()
       acceptEdit()
     }
-  }
+  }, [cancelEdit, acceptEdit])
+
+  const handleAddChild = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    callbacks.onAddChild(id)
+  }, [callbacks, id])
+
+  const handleDelete = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    callbacks.onDelete(id)
+  }, [callbacks, id])
 
   const rows = Math.max(2, (draftText.match(/\n/g) || []).length + 2)
   const tagColor = getTagColor(data.tags || [])
-  const borderColor = tagColor || levelColors[Math.min(data.level ?? 0, levelColors.length - 1)]
-
+  const borderColor = tagColor || (data.developed ? '#10b981' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
   return (
     <div
       style={{
@@ -96,12 +105,10 @@ export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>
         fontSize: '14px',
         outline: selected ? '2px solid #3b82f6' : undefined,
         outlineOffset: '2px',
+        opacity: isDimmed ? 0.3 : 1,
+        transition: 'opacity 0.15s',
       }}
       onDoubleClick={handleDoubleClick}
-      onClick={(e) => {
-        e.stopPropagation()
-        data.onSelect?.()
-      }}
       className="relative"
     >
       <Handle type="target" position={Position.Top} className="!bg-border" />
@@ -124,6 +131,15 @@ export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>
             className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
             placeholder="etiquetas separadas por coma (central, importante, idea...)"
           />
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={draftDeveloped}
+              onChange={(e) => setDraftDeveloped(e.target.checked)}
+              className="accent-primary"
+            />
+            Desarrollado
+          </label>
           <div className="flex justify-end gap-2">
             <button
               type="button"
@@ -143,7 +159,10 @@ export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>
         </div>
       ) : (
         <div className="space-y-1">
-          <div className="text-left break-words whitespace-pre-line">{data.text}</div>
+          <div className="flex items-start gap-1.5">
+            <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
+            <div className="text-left break-words whitespace-pre-line">{data.text}</div>
+          </div>
           {(data.tags || []).length > 0 && (
             <div className="flex flex-wrap justify-center gap-1">
               {data.tags.map((tag) => (
@@ -169,20 +188,14 @@ export default memo(function MindMapNode({ data, selected }: NodeProps<NodeData>
         <div className="absolute -top-3 -right-3 flex gap-1">
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              data.onAddChild?.()
-            }}
+            onClick={handleAddChild}
             className="w-5 h-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center hover:bg-primary/90"
           >
             +
           </button>
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              data.onDelete?.()
-            }}
+            onClick={handleDelete}
             className="w-5 h-5 rounded-full bg-destructive text-destructive-foreground text-xs flex items-center justify-center hover:bg-destructive/90"
           >
             ×

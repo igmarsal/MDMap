@@ -34,9 +34,11 @@ export function useKeyboardShortcuts(handlers: {
         handlers.onDelete?.()
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'c') {
+        e.preventDefault()
         handlers.onCopy?.()
       }
       if ((e.metaKey || e.ctrlKey) && e.key === 'v') {
+        e.preventDefault()
         handlers.onPaste?.()
       }
       if (e.key === 'Tab') {

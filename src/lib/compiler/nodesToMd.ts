@@ -3,8 +3,9 @@ import type { MindMapNode } from '../types'
 function formatNodeText(node: MindMapNode): string[] {
   const parts = node.text.split('\n')
   const firstLine = parts[0]?.trimEnd() || 'Sin título'
+  const developedMark = node.developed ? '[x] ' : '[ ] '
   const tagStr = node.tags.length > 0 ? ' ' + node.tags.map((t) => `#${t}`).join(' ') : ''
-  const title = `${firstLine}${tagStr}`
+  const title = `${developedMark}${firstLine}${tagStr}`
   return [title, ...parts.slice(1).map((line) => `| ${line.trimEnd()}`)]
 }
 
