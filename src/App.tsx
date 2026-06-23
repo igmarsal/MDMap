@@ -7,13 +7,12 @@ import { NodeCallbacksProvider } from './components/mindmap/NodeCallbacksContext
 import { useFileSystem } from './lib/fileSystem/useFileSystem'
 import { mdToNodes } from './lib/parser/mdToNodes'
 import { nodesToMd } from './lib/compiler/nodesToMd'
-import type { MindMapNode } from './lib/types'
+import type { MindMapNode, MindMapNodeData } from './lib/types'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoSave } from './hooks/useAutoSave'
 import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow'
 import type { Node, Edge, OnNodesChange, OnEdgesChange, OnConnect } from 'reactflow'
-
-const initialMd = '- Idea central\n  - Rama 1\n  - Rama 2\n'
+import { I18nProvider, useI18n } from './lib/i18n'
 
 function downloadMd(md: string, filename: string) {
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
@@ -27,7 +26,7 @@ function downloadMd(md: string, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-function recomputeDeveloped(nodes: Node[], edges: Edge[]): Node[] {
+function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node<MindMapNodeData>[] {
   const childrenOf = new Map<string, string[]>()
   edges.forEach((e) => {
     const list = childrenOf.get(e.source) || []
@@ -35,15 +34,15 @@ function recomputeDeveloped(nodes: Node[], edges: Edge[]): Node[] {
     childrenOf.set(e.source, list)
   })
 
+  const developedById = (id: string): boolean =>
+    !!nodes.find((n) => n.id === id)?.data.developed
+
   function allDescendantsDeveloped(id: string): boolean {
     const children = childrenOf.get(id) || []
     if (children.length === 0) {
-      return !!((nodes.find((n) => n.id === id)?.data as any)?.developed)
+      return developedById(id)
     }
-    return children.every((c) => {
-      const childDeveloped = !!((nodes.find((n) => n.id === c)?.data as any)?.developed)
-      return childDeveloped && allDescendantsDeveloped(c)
-    })
+    return children.every((c) => developedById(c) && allDescendantsDeveloped(c))
   }
 
   return nodes.map((n) => {
@@ -54,7 +53,7 @@ function recomputeDeveloped(nodes: Node[], edges: Edge[]): Node[] {
   })
 }
 
-function nodesToMindMap(nodes: Node[], edges: Edge[]): MindMapNode[] {
+function nodesToMindMap(nodes: Node<MindMapNodeData>[], edges: Edge[]): MindMapNode[] {
   const childrenByParent = new Map<string | null, string[]>()
 
   edges.forEach((edge) => {
@@ -65,25 +64,26 @@ function nodesToMindMap(nodes: Node[], edges: Edge[]): MindMapNode[] {
 
   return nodes.map((node) => ({
     id: node.id,
-    text: (node.data as any)?.text || '',
-    level: (node.data as any)?.level || 0,
+    text: node.data.text || '',
+    level: node.data.level || 0,
     parent: edges.find((edge) => edge.target === node.id)?.source || null,
     children: childrenByParent.get(node.id) || [],
     position: node.position,
-    tags: (node.data as any)?.tags || [],
-    developed: !!(node.data as any)?.developed,
+    tags: node.data.tags || [],
+    developed: !!node.data.developed,
   }))
 }
 
 function AppContent() {
-  const nodesRef = useRef<Node[]>([])
+  const { t } = useI18n()
+  const nodesRef = useRef<Node<MindMapNodeData>[]>([])
   const edgesRef = useRef<Edge[]>([])
   const handleRef = useRef<FileSystemFileHandle | null>(null)
   const dirtyRef = useRef(false)
-  const clipboardRef = useRef<{ nodes: Node[]; edges: Edge[] } | null>(null)
+  const clipboardRef = useRef<{ nodes: Node<MindMapNodeData>[]; edges: Edge[] } | null>(null)
 
   const [fileName, setFileName] = useState<string | null>(null)
-  const [nodes, setNodes] = useState<Node[]>([])
+  const [nodes, setNodes] = useState<Node<MindMapNodeData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set())
   const selectedIdsRef = useRef<Set<string>>(new Set())
@@ -91,6 +91,7 @@ function AppContent() {
   const [dirty, setDirty] = useState(false)
   const [hasClipboard, setHasClipboard] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
+  const [showBody, setShowBody] = useState(false)
 
   nodesRef.current = nodes
   edgesRef.current = edges
@@ -121,7 +122,7 @@ function AppContent() {
       try {
         const pickerHandle = await (window as any).showSaveFilePicker({
           types: [{ description: 'Markdown', accept: { 'text/markdown': ['.md'] } }],
-          suggestedName: fileName || 'mdmap_plan.md',
+          suggestedName: fileName || t('suggestFileName'),
         })
         await saveFile(md, pickerHandle)
         handleRef.current = pickerHandle
@@ -129,21 +130,24 @@ function AppContent() {
         dirtyRef.current = false
         setDirty(false)
       } catch (e) {
-        if ((e as any)?.name !== 'AbortError') {
+        if (!(e instanceof Error && e.name === 'AbortError')) {
           console.error('Error al guardar:', e)
         }
       }
     } else {
-      downloadMd(md, fileName || 'mdmap_plan.md')
+      downloadMd(md, fileName || t('suggestFileName'))
       dirtyRef.current = false
       setDirty(false)
     }
-  }, [fileName, saveFile])
+  }, [fileName, saveFile, t])
 
   const { scheduleSave } = useAutoSave(
     () => nodesToMd(nodesToMindMap(nodesRef.current, edgesRef.current)),
     doSave,
     1500,
+    // El autoguardado solo es efectivo cuando hay un FileHandle nativo que
+    // sobrescribir (Chrome/Edge con File System Access API).
+    () => handleRef.current !== null,
   )
 
   const handleSave = useCallback(async () => {
@@ -173,7 +177,7 @@ function AppContent() {
   const handleOpenFile = useCallback(async () => {
     if (editingNodeId) setEditingNodeId(null)
     if (dirtyRef.current) {
-      if (!confirm('Hay cambios sin guardar. ¿Deseas abrir otro archivo?')) return
+      if (!confirm(t('unsavedChangesConfirm'))) return
     }
     try {
       const { md, state } = await openFile()
@@ -183,11 +187,11 @@ function AppContent() {
       setDirty(false)
       loadParsedMd(md)
     } catch (e) {
-      if ((e as any)?.name !== 'AbortError') {
+      if (!(e instanceof Error && e.name === 'AbortError')) {
         console.error('Error al abrir archivo:', e)
       }
     }
-  }, [editingNodeId, loadParsedMd, openFile])
+  }, [editingNodeId, loadParsedMd, openFile, t])
 
   const handleNodesChange: OnNodesChange = useCallback((changes) => {
     setNodes((nds) => {
@@ -224,17 +228,17 @@ function AppContent() {
       .filter(Boolean)
       .length
 
-    const level = ((parentNode.data as any)?.level || 0) + 1
+    const level = (parentNode.data.level || 0) + 1
     const verticalGap = 100
     const horizontalGap = 60
     const nodeWidth = 200
 
     const totalSiblingsWidth = nodeWidth * siblings + horizontalGap * Math.max(0, siblings - 1)
     const newX = parentNode.position.x - totalSiblingsWidth / 2 + (nodeWidth * siblings) / 2
-    const newNode: Node = {
+    const newNode: Node<MindMapNodeData> = {
       id, type: 'mindMap', selected: true,
       position: { x: newX, y: parentNode.position.y + verticalGap },
-      data: { text: 'Nuevo nodo', level, tags: [], developed: false },
+      data: { text: t('newNode'), level, tags: [], developed: false },
     }
     setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
     setEdges((eds) => [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }])
@@ -242,27 +246,50 @@ function AppContent() {
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [markDirty, scheduleSave])
+  }, [markDirty, scheduleSave, t])
+
+  const handleAddSibling = useCallback((sourceId: string) => {
+    const source = nodesRef.current.find((n) => n.id === sourceId)
+    if (!source) return
+    const parentId = edgesRef.current.find((e) => e.target === sourceId)?.source ?? null
+    const id = Math.random().toString(36).slice(2, 9)
+    const nodeWidth = 200
+    const gap = 40
+
+    const newNode: Node<MindMapNodeData> = {
+      id, type: 'mindMap', selected: true,
+      position: { x: source.position.x + nodeWidth + gap, y: source.position.y },
+      data: { text: t('newNode'), level: source.data.level, tags: [], developed: false },
+    }
+    setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
+    setEdges((eds) => parentId
+      ? [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }]
+      : eds)
+    setSelectedNodeIds(new Set([id]))
+    setEditingNodeId(null)
+    markDirty()
+    scheduleSave()
+  }, [markDirty, scheduleSave, t])
 
   const handleAddRoot = useCallback(() => {
     const id = Math.random().toString(36).slice(2, 9)
-    const roots = nodesRef.current.filter((n) => (n.data as any)?.level === 0)
+    const roots = nodesRef.current.filter((n) => n.data.level === 0)
     const nodeWidth = 200
     const horizontalGap = 60
     const totalWidth = nodeWidth * roots.length + horizontalGap * roots.length
     const startX = -totalWidth / 2 + nodeWidth / 2
 
-    const newNode: Node = {
+    const newNode: Node<MindMapNodeData> = {
       id, type: 'mindMap', selected: true,
       position: { x: startX, y: 0 },
-      data: { text: 'Nuevo nodo raíz', level: 0, tags: [], developed: false },
+      data: { text: t('newRoot'), level: 0, tags: [], developed: false },
     }
     setNodes((nds) => [...nds, newNode])
     setSelectedNodeIds(new Set([id]))
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [markDirty, scheduleSave])
+  }, [markDirty, scheduleSave, t])
 
   const handleDeleteNodes = useCallback((ids: string[]) => {
     if (ids.length === 0) return
@@ -278,7 +305,7 @@ function AppContent() {
       })
     }
     if (toDelete.size > 1) {
-      if (!confirm(`Se eliminarán ${toDelete.size} nodos. ¿Continuar?`)) return
+      if (!confirm(t('deleteConfirm', { count: toDelete.size }))) return
     }
     setNodes((nds) => {
       const filtered = nds.filter((n) => !toDelete.has(n.id))
@@ -295,7 +322,7 @@ function AppContent() {
     if (editingNodeId && toDelete.has(editingNodeId)) setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [editingNodeId, markDirty, scheduleSave])
+  }, [editingNodeId, markDirty, scheduleSave, t])
 
   const handleDeleteNode = useCallback((id: string) => {
     handleDeleteNodes([id])
@@ -305,7 +332,7 @@ function AppContent() {
     setNodes((nds) => {
       const updated = nds.map((n) => (n.id === id ? {
         ...n,
-        data: { ...n.data, text, tags, developed: developed ?? (n.data as any)?.developed ?? false, editing: false },
+        data: { ...n.data, text, tags, developed: developed ?? n.data.developed ?? false, editing: false },
       } : n))
       return recomputeDeveloped(updated, edgesRef.current)
     })
@@ -359,7 +386,7 @@ function AppContent() {
     if (clipNodes.length === 0) return
 
     const idMap = new Map<string, string>()
-    const newNodes: Node[] = clipNodes.map((n) => {
+    const newNodes: Node<MindMapNodeData>[] = clipNodes.map((n) => {
       const newId = Math.random().toString(36).slice(2, 9)
       idMap.set(n.id, newId)
       return {
@@ -390,9 +417,9 @@ function AppContent() {
 
   useEffect(() => {
     if (nodes.length === 0) {
-      loadParsedMd(initialMd)
+      loadParsedMd(t('initialMd'))
     }
-  }, [loadParsedMd, nodes.length])
+  }, [loadParsedMd, nodes.length, t])
 
   useKeyboardShortcuts({
     onSave: handleSave,
@@ -403,6 +430,16 @@ function AppContent() {
     },
     onCopy: handleCopy,
     onPaste: handlePaste,
+    onAddChild: () => {
+      if (editingNodeId) return
+      const first = Array.from(selectedIdsRef.current)[0]
+      if (first) handleAddChild(first)
+    },
+    onAddSibling: () => {
+      if (editingNodeId) return
+      const first = Array.from(selectedIdsRef.current)[0]
+      if (first) handleAddSibling(first)
+    },
   })
 
   const setSelectedNodeIdsStable = useCallback((ids: Set<string>) => {
@@ -417,9 +454,11 @@ function AppContent() {
   return (
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
       <FileBar
-        fileName={fileName ? `${fileName}${dirty ? ' *' : ''}` : dirty ? 'Sin guardar...' : null}
+        fileName={fileName ? `${fileName}${dirty ? ' *' : ''}` : dirty ? t('unsaved') : null}
         searchQuery={searchQuery}
+        showBody={showBody}
         onSearchChange={setSearchQuery}
+        onToggleShowBody={setShowBody}
         onOpenFile={handleOpenFile}
         onSave={handleSave}
       />
@@ -453,6 +492,7 @@ function AppContent() {
             edges={edges}
             editingNodeId={editingNodeId}
             searchQuery={searchQuery}
+            showBody={showBody}
             onSelectionChange={(params: OnSelectionChangeParams) => {
               setSelectedNodeIdsStable(new Set(params.nodes.map((n) => n.id)))
             }}
@@ -469,7 +509,9 @@ function AppContent() {
 export default function App() {
   return (
     <ReactFlowProvider>
-      <AppContent />
+      <I18nProvider>
+        <AppContent />
+      </I18nProvider>
     </ReactFlowProvider>
   )
 }

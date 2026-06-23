@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, unlinkSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, unlinkSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -53,11 +53,20 @@ function generateStandalone(distDir) {
     const js = readFileSync(path.join(distDir, 'assets', jsFile), 'utf-8')
     const css = readFileSync(path.join(distDir, 'assets', cssFile), 'utf-8')
 
+    // Inlinear el favicon como data-URI para que standalone.html funcione con
+    // file:// sin depender de un favicon.svg externo.
+    let faviconDataUri = ''
+    const faviconPath = path.join(distDir, 'favicon.svg')
+    if (existsSync(faviconPath)) {
+      faviconDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(readFileSync(faviconPath, 'utf-8'))}`
+    }
+
     let result = html
       .replace(/<link rel="stylesheet"[^>]*>/, () => `<style>${css}</style>`)
       .replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/, () => `<script type="module">${js}</script>`)
       .replace(/crossorigin\s*=\s*"[^"]*"/g, '')
-      .replace(/<link[^>]*rel="icon"[^>]*>/, '')
+      .replace(/<link[^>]*rel="icon"[^>]*>/, () =>
+        faviconDataUri ? `<link rel="icon" href="${faviconDataUri}" />` : '')
 
     const out = path.join(distDir, 'standalone.html')
     writeFileSync(out, result, 'utf-8')
@@ -83,15 +92,19 @@ async function main() {
 
   mkdirSync(releaseDir, { recursive: true })
 
-  // Prepare release folder
+  // Prepare release folder (limpieza completa: ficheros y subdirectorios)
   const releaseDest = path.join(releaseDir, appName)
   if (existsSync(releaseDest)) {
-    for (const entry of readdirSync(releaseDest)) {
-      const p = path.join(releaseDest, entry)
-      if (statSync(p).isFile()) unlinkSync(p)
-    }
+    rmSync(releaseDest, { recursive: true, force: true })
   }
   mkdirSync(releaseDest, { recursive: true })
+
+  // Eliminar ZIPs de versiones anteriores para no acumularlos en release/
+  for (const entry of readdirSync(releaseDir)) {
+    if (/^MDMap_v.*\.zip$/.test(entry)) {
+      unlinkSync(path.join(releaseDir, entry))
+    }
+  }
 
   // Copy built files + server script
   function copyRecursive(src, dest) {

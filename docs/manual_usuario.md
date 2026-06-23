@@ -34,7 +34,7 @@ Abrir `http://127.0.0.1:4173`.
 
 ## Interfaz principal
 
-- **Barra superior**: muestra el archivo activo (con indicador verde si hay un archivo abierto). Incluye botones **Abrir .md**, **Guardar** y campo de búsqueda.
+- **Barra superior**: muestra el archivo activo (con indicador verde si hay un archivo abierto). Incluye campo de búsqueda, casilla **Cuerpo** (mostrar/ocultar el cuerpo de los nodos), selector de idioma **ES/EN**, y botones **Abrir .md** y **Guardar**.
 - **Barra de herramientas flotante**: permite añadir nodos raíz, hijos, copiar, pegar y borrar.
 - **Lienzo central**: muestra los nodos y las conexiones del mapa mental.
 - **Minimapa y controles de zoom**: aparecen al pasar el ratón por la esquina inferior izquierda.
@@ -61,12 +61,13 @@ Haz doble clic sobre un nodo. Se abre un panel con:
 
 ## Ver cuerpo del nodo
 
-Por defecto los nodos muestran solo el título en negrita. Para ver el cuerpo (si tiene):
-1. Haz clic sobre el nodo.
-2. El cuerpo se despliega debajo del título, separado por una línea.
-3. Vuelve a hacer clic para ocultarlo.
+Por defecto los nodos muestran solo el título en negrita. Para mostrar también el cuerpo de todos los nodos:
 
-El cuerpo se guarda como líneas de continuación (`|`) en el Markdown.
+1. Marca la casilla **Cuerpo** de la barra superior.
+2. Cada nodo que tenga cuerpo lo mostrará debajo del título, en un tono más tenue.
+3. Desmarca la casilla para volver a ver solo los títulos.
+
+El cuerpo se edita con doble clic sobre el nodo (campo "Cuerpo del nodo"). El cuerpo se guarda como líneas de continuación (`|`) en el Markdown.
 
 ## Indicador visual
 
@@ -86,8 +87,7 @@ Colores por defecto: `central` (rojo), `importante` (ámbar), `urgente` (rojo), 
 
 ## Seleccionar, mover y conectar
 
-- **Mostrar cuerpo**: haz clic sobre un nodo para mostrar u ocultar su cuerpo.
-- **Seleccionar**: haz clic sobre el fondo del nodo (zona que no sea el cuerpo) o arrastra una caja de selección con `Shift`.
+- **Seleccionar**: haz clic sobre un nodo, o arrastra una caja de selección sobre el lienzo.
 - **Selección múltiple**: `Shift` + clic sobre varios nodos.
 - **Mover**: arrastra el nodo dentro del lienzo. Si hay varios seleccionados, se mueven juntos.
 - **Conectar**: arrastra desde el conector inferior de un nodo hasta otro nodo.
@@ -118,7 +118,7 @@ El archivo queda vinculado: al pulsar **Guardar** se escribe directamente en el 
 
 Pulsa **Guardar** en la barra superior. Si hay un archivo abierto, se guarda directamente. Si no, se muestra el selector para elegir ubicación.
 
-El autoguardado también guarda cambios tras unos segundos de inactividad, solo si hay un archivo abierto.
+El autoguardado también guarda cambios tras unos segundos de inactividad, pero solo cuando el archivo se abrió con la File System Access API (navegadores Chromium). En otros navegadores, o si el archivo se abrió por el selector tradicional, debes guardar manualmente con el botón **Guardar** (se descargará un archivo nuevo).
 
 ## Atajos de teclado
 
@@ -128,8 +128,13 @@ El autoguardado también guarda cambios tras unos segundos de inactividad, solo 
 | Copiar | `Ctrl + C` / `Cmd + C` |
 | Pegar | `Ctrl + V` / `Cmd + V` |
 | Borrar nodo seleccionado | `Delete` |
+| Añadir hijo al nodo seleccionado | `Tab` |
+| Añadir hermano del nodo seleccionado | `Shift + Tab` |
 | Aceptar edición | `Ctrl + Enter` / `Cmd + Enter` |
 | Cancelar edición | `Escape` |
+| Selección múltiple | `Shift` + clic |
+
+> Los atajos de edición (Copiar, Pegar, Tab) requieren tener un nodo seleccionado y no funcionan mientras se edita el texto de un nodo.
 
 ## Formato Markdown
 
@@ -149,7 +154,7 @@ Reglas:
 - La indentación (2 espacios) determina el nivel.
 - Las etiquetas se escriben con `#`.
 - Las líneas de continuación empiezan con `|` y forman el cuerpo del nodo.
-- El cuerpo se muestra al hacer clic en el nodo.
+- El cuerpo se muestra en el lienzo al activar la casilla **Cuerpo** de la barra superior.
 
 ## Consejos
 

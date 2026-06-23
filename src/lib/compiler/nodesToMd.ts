@@ -2,10 +2,13 @@ import type { MindMapNode } from '../types'
 
 function formatNodeText(node: MindMapNode): string[] {
   const parts = node.text.split('\n')
-  const firstLine = parts[0]?.trimEnd() || 'Sin título'
+  // Conservamos el título vacío en vez de inyectar "Sin título" para que el
+  // round-trip (abrir .md -> guardar -> abrir) sea idempotente: un nodo sin
+  // título vuelve a compilar como nodo sin título.
+  const firstLine = parts[0]?.trimEnd() ?? ''
   const developedMark = node.developed ? '[x] ' : '[ ] '
   const tagStr = node.tags.length > 0 ? ' ' + node.tags.map((t) => `#${t}`).join(' ') : ''
-  const title = `${developedMark}${firstLine}${tagStr}`
+  const title = `${developedMark}${firstLine}${tagStr}`.trimEnd()
   return [title, ...parts.slice(1).map((line) => `| ${line.trimEnd()}`)]
 }
 

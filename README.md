@@ -72,7 +72,8 @@ npm run preview
 
 ## Características
 
-- **Título y cuerpo separados**: el título se muestra siempre en negrita; el cuerpo se despliega al hacer clic en el nodo.
+- **Título y cuerpo separados**: el título se muestra siempre en negrita; el cuerpo se edita con doble clic y se muestra/oculta en el lienzo con la casilla **Cuerpo** de la barra superior.
+- **Internacionalización**: interfaz en Español e Inglés con selector en la barra superior. El idioma se persiste y por defecto sigue el del navegador.
 - **Nodos desarrollados**: marca `[x]`/`[ ]` en el editor. El padre se marca automáticamente si todos sus hijos lo están.
 - **Búsqueda**: filtra nodos por texto o etiqueta desde la barra superior.
 - **Minimapa**: auto-ocultable en la esquina inferior izquierda.
@@ -84,8 +85,8 @@ npm run preview
 src/
   App.tsx                         Estado principal y acciones del mapa
   components/
-    FileBar.tsx                   Barra de apertura y guardado
-    MarkdownEditor/               Editor y vista previa de Markdown
+    FileBar.tsx                   Barra de apertura, guardado, búsqueda y cuerpo
+    ui/                           Componentes de UI base
     mindmap/                      Lienzo, nodos, bordes y toolbar
   hooks/                          Atajos de teclado y autoguardado
   lib/

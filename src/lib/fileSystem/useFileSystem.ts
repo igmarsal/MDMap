@@ -15,7 +15,7 @@ async function ensureWrite(handle: FileSystemFileHandle) {
   if (!h.requestPermission) return
   const result = await h.requestPermission({ mode: 'readwrite' })
   if (result !== 'granted') {
-    throw new Error('Permiso de escritura denegado.')
+    throw new Error('Write permission denied.')
   }
 }
 
@@ -46,18 +46,41 @@ export function useFileSystem() {
 }
 
 function fallbackOpen(): Promise<{ md: string; state: FileHandleState }> {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const input = document.createElement('input')
     input.type = 'file'
     input.accept = '.md'
+
+    const cleanup = () => window.removeEventListener('focus', onFocus)
+
     input.onchange = async () => {
+      cleanup()
       const file = input.files?.[0]
-      if (!file) throw new Error('No se seleccionó archivo')
+      if (!file) {
+        reject(new Error('No file selected'))
+        return
+      }
       resolve({
         md: await file.text(),
         state: { fileHandle: null, fileName: file.name },
       })
     }
+
+    // El picker nativo de <input type=file> no tiene evento de cancelación
+    // fiable. Cuando el usuario cancela, la ventana recupera el foco sin que
+    // onchange se dispare; lo detectamos y rechazamos con AbortError para que
+    // la UI no quede colgada esperando indefinidamente.
+    const onFocus = () => {
+      setTimeout(() => {
+        if (!input.files || input.files.length === 0) {
+          cleanup()
+          const err = new DOMException('Operación cancelada', 'AbortError')
+          reject(err)
+        }
+      }, 300)
+    }
+    window.addEventListener('focus', onFocus)
+
     input.click()
   })
 }

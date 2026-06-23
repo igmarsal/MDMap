@@ -58,24 +58,24 @@ Por defecto sirve en `http://127.0.0.1:4173`.
 
 ```text
 src/
-  App.tsx                         Estado principal del mapa
+  App.tsx                         Estado principal del mapa (fuente de verdad)
   components/
-    FileBar.tsx                   Barra de apertura y guardado
-    MarkdownEditor/               Editor y vista previa Markdown
+    FileBar.tsx                   Barra superior: archivo, búsqueda, cuerpo, abrir/guardar
+    ui/                           Componentes de UI base (Button, etc.)
     mindmap/                      Lienzo, nodos, bordes y toolbar
       MindMapCanvas.tsx           Lienzo React Flow con auto-ocultación
       NodeComponent.tsx           Nodo personalizado con editor y checkbox
       Toolbar.tsx                 Barra de herramientas flotante
       EdgeComponent.tsx           Arista personalizada
-      NodeCallbacksContext.tsx     Contexto de callbacks de nodo
+      NodeCallbacksContext.tsx    Contexto de callbacks de nodo
   hooks/
-    useKeyboardShortcuts.ts       Atajos de teclado
-    useAutoSave.ts                Autoguardado diferido
+    useKeyboardShortcuts.ts       Atajos de teclado (incluye Tab/Shift+Tab)
+    useAutoSave.ts                Autoguardado diferido (solo con FileHandle nativo)
   lib/
     compiler/nodesToMd.ts         Nodos → Markdown
     fileSystem/useFileSystem.ts   Apertura/guardado de archivos
     parser/mdToNodes.ts           Markdown → nodos
-  stores/useMindMapStore.tsx      Contexto de estado
+  stores/useMindMapStore.tsx      Contexto de estado (placeholder sin uso)
   main.tsx                        Punto de entrada
   index.css                       Estilos y tema Tailwind
 ```
@@ -84,7 +84,11 @@ src/
 
 ### `src/App.tsx`
 
-Coordina el estado del mapa, nodos, conexiones, archivo activo, copiar/pegar, añadir/eliminar nodos, y conversión entre nodos y Markdown.
+Coordina el estado del mapa, nodos, conexiones, archivo activo, copiar/pegar, añadir/eliminar nodos, y conversión entre nodos y Markdown. Es la única fuente de verdad del estado del canvas (no hay store global en uso).
+
+### `src/stores/useMindMapStore.tsx`
+
+Placeholder de contexto no conectado a la aplicación. No se renderiza ningún `MindMapProvider`; el estado vive en `App.tsx`. Se conserva como semilla para una futura migración a un store real.
 
 ### `src/lib/parser/mdToNodes.ts`
 
@@ -92,11 +96,11 @@ Convierte Markdown indentado en nodos. Funciones: `parseIndentation`, `parseTags
 
 ### `src/lib/compiler/nodesToMd.ts`
 
-Convierte nodos en Markdown. Funciones: `formatNodeText`, `nodesToMd`. Serializa `[x]`/`[ ]`.
+Convierte nodos en Markdown. Funciones: `formatNodeText`, `nodesToMd`. Serializa `[x]`/`[ ]`. Los títulos vacíos se conservan (no se inyecta texto) para que el round-trip `abrir → guardar → abrir` sea idempotente.
 
 ### `src/lib/fileSystem/useFileSystem.ts`
 
-Gestiona apertura y guardado de archivos. Usa `showOpenFilePicker`/`showSaveFilePicker` (File System Access API). Incluye `fallbackOpen` para navegadores no compatibles.
+Gestiona apertura y guardado de archivos. Usa `showOpenFilePicker`/`showSaveFilePicker` (File System Access API). Incluye `fallbackOpen` para navegadores no compatibles; el fallback rechaza con `AbortError` si el usuario cancela el selector para no dejar la UI bloqueada.
 
 ## Criterios de aceptación para nuevas versiones
 
@@ -118,10 +122,12 @@ La aplicación es completamente estática. Publicar el contenido de `dist/` (o `
 
 ## Limitaciones conocidas
 
-- El acceso directo a archivos requiere navegadores con File System Access API.
-- En navegadores no compatibles, el guardado usa descarga (crea un archivo nuevo cada vez).
+- El acceso directo a archivos (y el autoguardado) requiere navegadores con File System Access API (Chromium).
+- En navegadores no compatibles, la apertura usa el selector tradicional y el guardado usa descarga (crea un archivo nuevo cada vez). El autoguardado queda desactivado en ese caso.
 - No existe autenticación ni sincronización en la nube.
-- `Tab` para añadir sibling/child no está implementado.
+- Deshacer/Rehacer (`Ctrl+Z`/`Ctrl+Y`) está registrado como placeholder y no implementado.
+- El tema (claro/oscuro) sigue la preferencia del sistema operativo (`prefers-color-scheme`); no hay conmutador manual.
+- La internacionalización (i18n) usa un contexto React simple con diccionarios en `src/lib/i18n.tsx` y un selector `ES`/`EN` en la barra superior. Para añadir un idioma: extender el diccionario y añadir el botón en `FileBar.tsx`.
 
 ## Mantenimiento
 

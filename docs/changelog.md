@@ -4,12 +4,25 @@
 
 ### Nuevo
 
-- **Título y cuerpo separados en nodos**: el texto del nodo se divide en título (primera línea) y cuerpo (resto). Por defecto solo se ve el título. Al hacer clic en el nodo se despliega el cuerpo. Doble clic para editar ambos campos por separado. El formato Markdown usa `- Título` y `| cuerpo` para las líneas de continuación, manteniendo compatibilidad con versiones anteriores.
+- **Título y cuerpo separados en nodos**: el texto del nodo se divide en título (primera línea) y cuerpo (resto). El cuerpo se edita con doble clic (campos separados "Título" y "Cuerpo"). El formato Markdown usa `- Título` y `| cuerpo` para las líneas de continuación, manteniendo compatibilidad con versiones anteriores.
+- **Casilla "Cuerpo" en la barra superior**: activa/desactiva la visualización del cuerpo de todos los nodos a la vez en el lienzo (global). Por defecto solo se muestra el título.
+- **Atajos `Tab` / `Shift+Tab`**: `Tab` añade un hijo al nodo seleccionado; `Shift+Tab` añade un hermano (mismo nivel/mismo padre). No actúan mientras se edita el texto de un nodo.
+- **Tema claro/oscuro automático**: la aplicación respeta la preferencia del sistema (`prefers-color-scheme`). Los nodos, fondo, aristas y controles usan tokens de color en lugar de valores fijos.
+- **Internacionalización (i18n)**: soporte nativo para Español e Inglés. La barra superior incluye un selector `ES`/`EN` que permite cambiar el idioma al instante. El idioma se persiste en `localStorage` y por defecto sigue el idioma del navegador. Todas las cadenas de la interfaz (barra superior, toolbar, editor de nodos, confirmaciones y contenido inicial) están traducidas.
 
 ### Cambiado
 
 - **Editor de nodos**: ahora muestra dos campos — "Título del nodo" (input) y "Cuerpo del nodo" (textarea multilínea), más etiquetas y checkbox "Desarrollado".
-- **Vista de nodos**: el título se muestra en negrita (`font-semibold`). El cuerpo solo se muestra durante la edición (doble clic), no al hacer clic en el nodo, para evitar que el toggle del cuerpo se propague a otros elementos al seleccionar.
+- **Vista de nodos**: el título se muestra en negrita (`font-semibold`). El cuerpo es visible en el lienzo únicamente cuando la casilla **Cuerpo** de la barra superior está activada; por defecto permanece oculto y solo se ve dentro del editor al editar (doble clic).
+- **Tipado de nodos**: introducido `MindMapNodeData` (`src/lib/types.ts`) usado por React Flow. Eliminados los casts `as any` sobre `node.data` (de ~18 a 4, todos sobre APIs del navegador no tipadas en TS).
+
+### Corregido
+
+- **Cancelación del selector de archivos colgaba la UI**: en navegadores sin File System Access API, si el usuario cancelaba "Abrir .md" la promesa nunca se resolvía y la interfaz quedaba bloqueada. Ahora el fallback rechaza con `AbortError` al detectar la cancelación.
+- **Autoguardado silencioso en navegadores no compatibles**: el autoguardado programaba guardados que nunca se materializaban sin File System Access API (pérdida silenciosa de datos). Ahora el autoguardado solo actúa cuando existe un `FileSystemFileHandle` real; en el resto de casos el usuario debe guardar manualmente.
+- **Round-trip Markdown no idempotente**: un nodo sin título se compilaba como `- [ ] Sin título`, mutando el archivo en cada ciclo abrir→guardar. Ahora se conserva el título vacío para que `abrir → guardar → abrir` no altere el contenido.
+- **Documentación desincronizada**: `architecture.md` listaba Shadcn/ui (no es dependencia) y describía `useMindMapStore` como fuente de verdad (es un placeholder sin uso); los manuales describían el cuerpo como toggle por clic en el nodo (es una casilla global) y omitían/contradecían atajos. Actualizados README, architecture.md y manuales.
+- **Código muerto**: eliminado `src/components/MarkdownEditor/` (nunca se importaba).
 
 ## v0.0.1 (2026-06-23)
 

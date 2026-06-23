@@ -1,6 +1,8 @@
 import { memo, useRef, useEffect, useState, useCallback } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
 import { useNodeCallbacks } from './NodeCallbacksContext'
+import type { MindMapNodeData } from '@/lib/types'
+import { useI18n } from '@/lib/i18n'
 
 const levelColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 const tagColors: Record<string, string> = {
@@ -21,15 +23,8 @@ function getTagColor(tags: string[]): string | null {
   return null
 }
 
-interface NodeData {
-  text: string
-  level: number
-  tags: string[]
-  editing?: boolean
-  developed?: boolean
-}
-
-export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeData>) {
+export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindMapNodeData>) {
+  const { t } = useI18n()
   const callbacks = useNodeCallbacks()
   const titleRef = useRef<HTMLInputElement>(null)
   const fullText = data.text || ''
@@ -40,7 +35,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
   const [draftBody, setDraftBody] = useState(body)
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
   const [draftDeveloped, setDraftDeveloped] = useState(!!data.developed)
-  const isDimmed = (data as any).dimmed === true
+  const isDimmed = data.dimmed === true
 
   useEffect(() => {
     if (data.editing) {
@@ -105,13 +100,13 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
   return (
     <div
       style={{
-        background: '#18181b',
+        background: 'var(--color-card)',
         border: `2px solid ${borderColor}`,
         borderRadius: '8px',
         padding: '8px 12px',
-        color: '#ededed',
+        color: 'var(--color-card-foreground)',
         fontSize: '14px',
-        outline: selected ? '2px solid #3b82f6' : undefined,
+        outline: selected ? '2px solid var(--color-primary)' : undefined,
         outlineOffset: '2px',
         opacity: isDimmed ? 0.3 : 1,
         transition: 'opacity 0.15s',
@@ -133,7 +128,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             onChange={(e) => setDraftTitle(e.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full bg-background border border-border rounded p-2 text-foreground text-sm font-semibold outline-none focus:ring-2 focus:ring-primary"
-            placeholder="Título del nodo..."
+            placeholder={t('nodeTitlePlaceholder')}
           />
           <textarea
             value={draftBody}
@@ -141,14 +136,14 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             onKeyDown={handleKeyDown}
             rows={Math.max(1, (draftBody.match(/\n/g) || []).length + 1)}
             className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-y"
-            placeholder="Cuerpo del nodo (opcional)..."
+            placeholder={t('nodeBodyPlaceholder')}
           />
           <input
             value={draftTags}
             onChange={(e) => setDraftTags(e.target.value)}
             onKeyDown={handleKeyDown}
             className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-            placeholder="etiquetas separadas por coma (central, importante, idea...)"
+            placeholder={t('nodeTagsPlaceholder')}
           />
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
             <input
@@ -157,7 +152,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
               onChange={(e) => setDraftDeveloped(e.target.checked)}
               className="accent-primary"
             />
-            Desarrollado
+            {t('developed')}
           </label>
           <div className="flex justify-end gap-2">
             <button
@@ -165,14 +160,14 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
               onClick={cancelEdit}
               className="rounded border border-border px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
             >
-              Cancelar
+              {t('cancelAction')}
             </button>
             <button
               type="button"
               onClick={acceptEdit}
               className="rounded bg-primary px-2 py-1 text-xs text-primary-foreground hover:bg-primary/90"
             >
-              Aceptar
+              {t('acceptAction')}
             </button>
           </div>
         </div>
@@ -182,6 +177,9 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
             <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
             <div className="text-left break-words whitespace-pre-line font-semibold">{title}</div>
           </div>
+          {data.showBody && body.trim().length > 0 && (
+            <div className="text-left break-words whitespace-pre-line text-xs text-muted-foreground mt-1 max-w-[300px]">{body}</div>
+          )}
           {(data.tags || []).length > 0 && (
             <div className="flex flex-wrap justify-center gap-1">
               {data.tags.map((tag) => (
@@ -189,7 +187,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<NodeD
                   key={tag}
                   className="text-[10px] px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: tagColors[tag.toLowerCase()] || '#6b7280',
+                    background: tagColors[tag.toLowerCase()] || 'var(--color-muted-foreground)',
                     color: '#ffffff',
                   }}
                 >

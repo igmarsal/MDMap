@@ -5,15 +5,17 @@ import 'reactflow/dist/style.css'
 
 import MindMapNode from './NodeComponent'
 import MindMapEdge from './EdgeComponent'
+import type { MindMapNodeData } from '@/lib/types'
 
 const nodeTypes = { mindMap: MindMapNode }
 const edgeTypes = { mindMap: MindMapEdge }
 
 interface MindMapCanvasProps {
-  nodes: Node[]
+  nodes: Node<MindMapNodeData>[]
   edges: Edge[]
   editingNodeId: string | null
   searchQuery: string
+  showBody: boolean
   onSelectionChange: (params: OnSelectionChangeParams) => void
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
@@ -25,6 +27,7 @@ export default function MindMapCanvas({
   edges,
   editingNodeId,
   searchQuery,
+  showBody,
   onSelectionChange,
   onNodesChange,
   onEdgesChange,
@@ -50,8 +53,8 @@ export default function MindMapCanvas({
     const q = searchQuery.trim().toLowerCase()
     if (!q) return new Set<string>()
     return new Set(nodes.filter(n => {
-      const text = ((n.data as any)?.text || '').toLowerCase()
-      const tags = ((n.data as any)?.tags || [] as string[]).join(' ').toLowerCase()
+      const text = (n.data.text || '').toLowerCase()
+      const tags = (n.data.tags || []).join(' ').toLowerCase()
       return !text.includes(q) && !tags.includes(q)
     }).map(n => n.id))
   }, [nodes, searchQuery])
@@ -62,8 +65,9 @@ export default function MindMapCanvas({
       ...n.data,
       editing: editingNodeId === n.id,
       dimmed: dimmedIds.has(n.id) && searchQuery.trim().length > 0,
+      showBody,
     },
-  })), [nodes, dimmedIds, editingNodeId, searchQuery])
+  })), [nodes, dimmedIds, editingNodeId, searchQuery, showBody])
 
   return (
     <div className="h-full w-full">
@@ -85,7 +89,7 @@ export default function MindMapCanvas({
         onPaneClick={() => {}}
         onSelectionChange={onSelectionChange}
       >
-        <Background color="#27272a" gap={20} />
+        <Background color="#71717a" gap={20} />
         <div
           style={{
             position: 'absolute', bottom: 0, left: 0, zIndex: 10,

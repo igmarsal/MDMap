@@ -19,7 +19,7 @@ export default memo(function MindMapEdge({
     <path
       id={id}
       d={edgePath}
-      stroke="#52525b"
+      stroke="#71717a"
       strokeWidth={2}
       fill="none"
     />

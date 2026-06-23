@@ -14,6 +14,23 @@
   --color-destructive-foreground: #ffffff;
 }
 
+/* Tema claro: se activa automáticamente según la preferencia del sistema. */
+@media (prefers-color-scheme: light) {
+  :root {
+    --color-background: #ffffff;
+    --color-foreground: #18181b;
+    --color-primary: #2563eb;
+    --color-primary-foreground: #ffffff;
+    --color-muted: #f4f4f5;
+    --color-muted-foreground: #71717a;
+    --color-border: #e4e4e7;
+    --color-card: #ffffff;
+    --color-card-foreground: #18181b;
+    --color-destructive: #dc2626;
+    --color-destructive-foreground: #ffffff;
+  }
+}
+
 body {
   margin: 0;
   background-color: var(--color-background);

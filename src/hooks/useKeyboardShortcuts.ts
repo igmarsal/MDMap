@@ -43,8 +43,11 @@ export function useKeyboardShortcuts(handlers: {
       }
       if (e.key === 'Tab') {
         e.preventDefault()
-        if (e.shiftKey) handlers.onAddChild?.()
-        else handlers.onAddSibling?.()
+        // Convención: Tab añade un hijo al nodo seleccionado; Shift+Tab añade
+        // un hermano (mismo nivel/mismo padre). Se ignora mientras se edita un
+        // campo (el guard de arriba ya descarta INPUT/TEXTAREA).
+        if (e.shiftKey) handlers.onAddSibling?.()
+        else handlers.onAddChild?.()
       }
     }
 

@@ -17,3 +17,17 @@ export interface ParsedNode {
   tags: string[]
   developed: boolean
 }
+
+/**
+ * Datos asociados a cada nodo de React Flow. Los campos `editing`, `dimmed` y
+ * `showBody` son transitorios: se inyectan en el canvas y no se persisten.
+ */
+export interface MindMapNodeData {
+  text: string
+  level: number
+  tags: string[]
+  developed: boolean
+  editing?: boolean
+  dimmed?: boolean
+  showBody?: boolean
+}
