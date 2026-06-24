@@ -59,10 +59,6 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       setTimeout(() => autoResizeBody(), 0)
     }
   }, [data.editing, autoResizeBody])
-
-  useEffect(() => {
-    autoResizeBody()
-  }, [draftBody, autoResizeBody])
   const fullText = data.text || ''
   const parts = fullText.split('\n')
   const title = parts[0] || ''
@@ -86,6 +82,11 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       setTimeout(() => titleRef.current?.focus(), 50)
     }
   }, [data.editing, data.text, data.tags, data.developed])
+
+  // Auto-redimensionar textarea del cuerpo al escribir
+  useEffect(() => {
+    autoResizeBody()
+  }, [draftBody, autoResizeBody])
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation()
