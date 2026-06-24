@@ -2,6 +2,10 @@
 
 ## v0.4.1 (2026-06-24)
 
+### Nuevo
+
+- **Colores únicos para etiquetas**: cada etiqueta obtiene un color HSL generado por hash de su nombre, sin necesidad de registro previo.
+
 ### Cambiado
 
 - **"Desarrollado" → "Completado"**: todas las etiquetas de interfaz (checkbox en editor de nodos, botón de toolbar, panel de filtros) ahora usan "Completado"/"Completed" en lugar de "Desarrollado"/"Developed".
@@ -9,6 +13,7 @@
 ### Corregido
 
 - **Backspace ya no borra nodos**: ReactFlow sobrescribe `deleteKeyCode` para que solo la tecla `Delete` (Supr) elimine nodos. `Backspace` sigue funcionando normalmente dentro de campos de texto.
+- **Textarea del cuerpo auto-redimensionable**: crece automáticamente al escribir sin necesidad de scroll manual.
 
 ## v0.4.0 (2026-06-24)
 
