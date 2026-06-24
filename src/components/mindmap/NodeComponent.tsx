@@ -1,4 +1,4 @@
-import { memo, useRef, useEffect, useState, useCallback } from 'react'
+import { memo, useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
 import { ChevronRight, ChevronDown } from 'lucide-react'
 import { useNodeCallbacks } from './NodeCallbacksContext'
@@ -71,6 +71,18 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   const hasChildren = data.hasChildren ?? false
   const isCollapsed = data.isCollapsed ?? false
   const descendantsCount = data.descendantsCount ?? 0
+  const availableTags = data.availableTags || []
+
+  // Autocompletado de etiquetas
+  const [tagSearchText, setTagSearchText] = useState<string | null>(null)
+  const tagSuggestions = useMemo(() => {
+    if (tagSearchText === null || !tagSearchText) return []
+    const lower = tagSearchText.toLowerCase()
+    const alreadyUsed = draftTags.split(',').map(s => s.trim().toLowerCase())
+    return availableTags.filter(t => 
+      t.toLowerCase().includes(lower) && !alreadyUsed.includes(t.toLowerCase())
+    )
+  }, [tagSearchText, availableTags, draftTags])
 
   useEffect(() => {
     if (data.editing) {
@@ -214,13 +226,43 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
             className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden"
             placeholder={t('nodeBodyPlaceholder')}
           />
-          <input
-            value={draftTags}
-            onChange={(e) => setDraftTags(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-            placeholder={t('nodeTagsPlaceholder')}
-          />
+          <div className="relative">
+            <input
+              value={draftTags}
+              onChange={(e) => {
+                setDraftTags(e.target.value)
+                const val = e.target.value
+                const lastComma = val.lastIndexOf(',')
+                setTagSearchText(val.slice(lastComma + 1).trim())
+              }}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
+              placeholder={t('nodeTagsPlaceholder')}
+              onFocus={() => setTagSearchText('')}
+              onBlur={() => setTimeout(() => setTagSearchText(''), 200)}
+            />
+            {tagSearchText !== null && tagSuggestions.length > 0 && (
+              <div className="absolute z-20 left-0 right-0 top-full mt-0.5 bg-popover border border-border rounded shadow-lg max-h-32 overflow-y-auto">
+                {tagSuggestions.map(tag => (
+                  <button
+                    key={tag}
+                    type="button"
+                    className="block w-full text-left px-2 py-1 text-xs hover:bg-accent transition-colors"
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      const parts = draftTags.split(',').map(s => s.trim())
+                      parts.pop()
+                      const newVal = parts.length > 0 ? parts.join(', ') + ', ' + tag : tag
+                      setDraftTags(newVal)
+                      setTagSearchText('')
+                    }}
+                  >
+                    #{tag}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
             <input
               type="checkbox"
