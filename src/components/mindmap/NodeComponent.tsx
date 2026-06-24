@@ -44,6 +44,25 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   const { t } = useI18n()
   const callbacks = useNodeCallbacks()
   const titleRef = useRef<HTMLInputElement>(null)
+  const bodyRef = useRef<HTMLTextAreaElement>(null)
+
+  const autoResizeBody = useCallback(() => {
+    const el = bodyRef.current
+    if (el) {
+      el.style.height = 'auto'
+      el.style.height = el.scrollHeight + 'px'
+    }
+  }, [])
+
+  useEffect(() => {
+    if (data.editing) {
+      setTimeout(() => autoResizeBody(), 0)
+    }
+  }, [data.editing, autoResizeBody])
+
+  useEffect(() => {
+    autoResizeBody()
+  }, [draftBody, autoResizeBody])
   const fullText = data.text || ''
   const parts = fullText.split('\n')
   const title = parts[0] || ''
@@ -184,11 +203,14 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
             placeholder={t('nodeTitlePlaceholder')}
           />
           <textarea
+            ref={bodyRef}
             value={draftBody}
-            onChange={(e) => setDraftBody(e.target.value)}
+            onChange={(e) => {
+              setDraftBody(e.target.value)
+              autoResizeBody()
+            }}
             onKeyDown={handleKeyDown}
-            rows={Math.max(1, (draftBody.match(/\n/g) || []).length + 1)}
-            className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-y"
+            className="w-full bg-background border border-border rounded p-2 text-foreground text-xs outline-none focus:ring-2 focus:ring-primary resize-none overflow-hidden"
             placeholder={t('nodeBodyPlaceholder')}
           />
           <input
