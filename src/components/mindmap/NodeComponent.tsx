@@ -7,20 +7,20 @@ import { useI18n } from '../../lib/i18n'
 import { NODE_WIDTH_CONFIG } from '../../lib/types'
 
 const levelColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
-const tagColors: Record<string, string> = {
-  central: '#ef4444',
-  importante: '#f59e0b',
-  urgente: '#dc2626',
-  idea: '#3b82f6',
-  hecho: '#10b981',
-  pregunta: '#8b5cf6',
-  decision: '#ec4899',
+
+/** Genera un color HSL determinista a partir del nombre de la etiqueta */
+function tagToColor(tag: string): string {
+  let hash = 0
+  for (let i = 0; i < tag.length; i++) {
+    hash = tag.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  const hue = Math.abs(hash) % 360
+  return `hsl(${hue}, 65%, 50%)`
 }
 
 function getTagColor(tags: string[]): string | null {
   for (const tag of tags) {
-    const color = tagColors[tag.toLowerCase()]
-    if (color) return color
+    return tagToColor(tag.toLowerCase())
   }
   return null
 }
@@ -263,7 +263,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
                   key={tag}
                   className="text-[10px] px-1.5 py-0.5 rounded-full"
                   style={{
-                    background: tagColors[tag.toLowerCase()] || 'var(--color-muted-foreground)',
+                    background: tagToColor(tag),
                     color: '#ffffff',
                   }}
                 >
