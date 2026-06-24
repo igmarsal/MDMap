@@ -524,13 +524,6 @@ function AppContent() {
     }),
   [nodes, hiddenNodeIds, showDevelopedBranches, filters.tags, filters.levels])
 
-  // Tags disponibles en todos los nodos (para autocompletado)
-  const availableTags = useMemo(() => {
-    const tags = new Set<string>()
-    nodes.forEach(n => (n.data.tags || []).forEach(t => tags.add(t)))
-    return Array.from(tags).sort()
-  }, [nodes])
-
   // Nodos procesados: aplicar edición y atenuación por búsqueda de texto
   const processedNodes = useMemo(() =>
     visibleNodes.map(node => ({
@@ -543,10 +536,9 @@ function AppContent() {
         hasChildren: edges.some(e => e.source === node.id),
         isCollapsed: collapsedNodeIds.has(node.id),
         descendantsCount: getDescendantsCount(node.id, edges),
-        availableTags,
       },
     })),
-  [visibleNodes, editingNodeId, hasSearchFilter, matchesSearchText, showBody, edges, collapsedNodeIds, availableTags])
+  [visibleNodes, editingNodeId, hasSearchFilter, matchesSearchText, showBody, edges, collapsedNodeIds])
 
   const processedEdges = useMemo(() =>
     edges.filter(edge =>

@@ -34,8 +34,6 @@ export interface MindMapNodeData {
   isCollapsed?: boolean
   descendantsCount?: number
   layoutMode?: LayoutMode
-  /** Tags disponibles en todo el mapa, para autocompletado */
-  availableTags?: string[]
 }
 
 /**
