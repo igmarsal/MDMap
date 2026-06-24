@@ -54,8 +54,8 @@ const translations: Record<Lang, Record<string, string>> = {
     clearFilters: 'Limpiar filtros',
 
     // Developed branches
-    showDeveloped: 'Mostrar desarrolladas',
-    hideDeveloped: 'Ocultar desarrolladas',
+    showDeveloped: 'Mostrar completadas',
+    hideDeveloped: 'Ocultar completadas',
     developedLabel: 'Completada',
 
     // Export
@@ -70,7 +70,7 @@ const translations: Record<Lang, Record<string, string>> = {
     nodeTitlePlaceholder: 'Título del nodo...',
     nodeBodyPlaceholder: 'Cuerpo del nodo (opcional)...',
     nodeTagsPlaceholder: 'etiquetas separadas por coma (central, importante, idea...)',
-    developed: 'Desarrollado',
+    developed: 'Completado',
     cancelAction: 'Cancelar',
     acceptAction: 'Aceptar',
 
@@ -135,8 +135,8 @@ const translations: Record<Lang, Record<string, string>> = {
     clearFilters: 'Clear filters',
 
     // Developed branches
-    showDeveloped: 'Show developed',
-    hideDeveloped: 'Hide developed',
+    showDeveloped: 'Show completed',
+    hideDeveloped: 'Hide completed',
     developedLabel: 'Completed',
 
     // Export
@@ -151,7 +151,7 @@ const translations: Record<Lang, Record<string, string>> = {
     nodeTitlePlaceholder: 'Node title...',
     nodeBodyPlaceholder: 'Node body (optional)...',
     nodeTagsPlaceholder: 'comma-separated tags (central, important, idea...)',
-    developed: 'Developed',
+    developed: 'Completed',
     cancelAction: 'Cancel',
     acceptAction: 'Accept',
 
