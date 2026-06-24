@@ -75,8 +75,11 @@ function generateStandalone(distDir) {
 }
 
 async function main() {
-  const pkg = JSON.parse(readFileSync(path.join(projectRoot, 'package.json'), 'utf-8'))
-  const version = pkg.version || '0.0.0'
+  // Extraer versión desde docs/changelog.md (primera línea ## vX.X.X)
+  const changelogPath = path.join(projectRoot, 'docs', 'changelog.md')
+  const changelog = readFileSync(changelogPath, 'utf-8')
+  const versionMatch = changelog.match(/^##\s+v(\d+\.\d+\.\d+)/m)
+  const version = versionMatch ? versionMatch[1] : '0.0.0'
   const appName = 'MDMap'
 
   if (!existsSync(path.join(projectRoot, 'node_modules'))) {
