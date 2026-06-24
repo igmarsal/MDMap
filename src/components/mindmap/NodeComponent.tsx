@@ -1,8 +1,10 @@
 import { memo, useRef, useEffect, useState, useCallback } from 'react'
 import { Handle, Position, type NodeProps } from 'reactflow'
+import { ChevronRight, ChevronDown } from 'lucide-react'
 import { useNodeCallbacks } from './NodeCallbacksContext'
-import type { MindMapNodeData } from '@/lib/types'
-import { useI18n } from '@/lib/i18n'
+import type { MindMapNodeData } from '../../lib/types'
+import { useI18n } from '../../lib/i18n'
+import { NODE_WIDTH_CONFIG } from '../../lib/types'
 
 const levelColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 const tagColors: Record<string, string> = {
@@ -23,6 +25,21 @@ function getTagColor(tags: string[]): string | null {
   return null
 }
 
+function areNodePropsEqual(prev: NodeProps<MindMapNodeData>, next: NodeProps<MindMapNodeData>) {
+  return prev.id === next.id &&
+    prev.selected === next.selected &&
+    prev.data.text === next.data.text &&
+    prev.data.level === next.data.level &&
+    prev.data.developed === next.data.developed &&
+    prev.data.editing === next.data.editing &&
+    prev.data.dimmed === next.data.dimmed &&
+    prev.data.showBody === next.data.showBody &&
+    prev.data.isCollapsed === next.data.isCollapsed &&
+    prev.data.hasChildren === next.data.hasChildren &&
+    prev.data.descendantsCount === next.data.descendantsCount &&
+    JSON.stringify(prev.data.tags) === JSON.stringify(next.data.tags)
+}
+
 export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindMapNodeData>) {
   const { t } = useI18n()
   const callbacks = useNodeCallbacks()
@@ -36,6 +53,9 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
   const [draftDeveloped, setDraftDeveloped] = useState(!!data.developed)
   const isDimmed = data.dimmed === true
+  const hasChildren = data.hasChildren ?? false
+  const isCollapsed = data.isCollapsed ?? false
+  const descendantsCount = data.descendantsCount ?? 0
 
   useEffect(() => {
     if (data.editing) {
@@ -95,11 +115,21 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
     callbacks.onDelete(id)
   }, [callbacks, id])
 
+  const handleToggleCollapse = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation()
+    callbacks.onToggleCollapse?.(id)
+  }, [callbacks, id])
+
   const tagColor = getTagColor(data.tags || [])
   const borderColor = tagColor || (data.developed ? '#10b981' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
+
+  const NODE_WIDTH = NODE_WIDTH_CONFIG.normal
+  const CONTENT_WIDTH = NODE_WIDTH - 30 // padding and borders
   return (
     <div
       style={{
+        width: NODE_WIDTH,
+        maxWidth: NODE_WIDTH,
         background: 'var(--color-card)',
         border: `2px solid ${borderColor}`,
         borderRadius: '8px',
@@ -116,11 +146,34 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
     >
       <Handle type="target" position={Position.Top} className="!bg-border" />
 
-      {data.editing ? (
+      {/* Collapse/Expand button */}
+      {hasChildren && !data.editing && (
+        <button
+          type="button"
+          onClick={handleToggleCollapse}
+          className="absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-background border border-border hover:bg-accent flex items-center justify-center"
+          title={isCollapsed ? t('expandBranch') : t('collapseBranch')}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )}
+        </button>
+      )}
+
+      {/* Descendants count indicator */}
+      {isCollapsed && descendantsCount > 0 && !data.editing && (
+        <div className="absolute -right-7 top-1/2 -translate-y-1/2 flex items-center justify-center bg-primary text-primary-foreground text-xs font-bold rounded-full min-w-[22px] h-[22px] px-1.5 shadow-sm border border-background">
+          +{descendantsCount}
+        </div>
+      )}
+
+       {data.editing ? (
         <div
           className="space-y-2"
           onClick={(e) => e.stopPropagation()}
-          style={{ width: 'fit-content', minWidth: '180px', maxWidth: '380px' }}
+          style={{ width: 'fit-content', minWidth: '180px', maxWidth: CONTENT_WIDTH }}
         >
           <input
             ref={titleRef}
@@ -175,10 +228,10 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
         <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-start gap-1.5">
             <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
-            <div className="text-left break-words whitespace-pre-line font-semibold">{title}</div>
+            <div className="text-left break-words whitespace-pre-line font-semibold max-w-[210px]">{title}</div>
           </div>
           {data.showBody && body.trim().length > 0 && (
-            <div className="text-left break-words whitespace-pre-line text-xs text-muted-foreground mt-1 max-w-[300px]">{body}</div>
+            <div className="text-left break-words whitespace-pre-line text-xs text-muted-foreground mt-1 max-w-[210px]">{body}</div>
           )}
           {(data.tags || []).length > 0 && (
             <div className="flex flex-wrap justify-center gap-1">
@@ -194,6 +247,12 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
                   #{tag}
                 </span>
               ))}
+            </div>
+          )}
+          {/* Developed label */}
+          {data.developed && !data.editing && (
+            <div className="text-[9px] text-muted-foreground text-center mt-1">
+              {t('developedLabel')}
             </div>
           )}
         </div>
@@ -221,4 +280,4 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       )}
     </div>
   )
-})
+}, areNodePropsEqual)

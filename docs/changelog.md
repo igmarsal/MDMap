@@ -1,5 +1,65 @@
 # Changelog
 
+## v0.4.0 (2026-06-24)
+
+### Nuevo
+
+- **Tres modos de layout**: horizontal (compacto, por defecto), vertical (mejorado) y radial (circular). El horizontal está optimizado para mapas grandes, creciendo principalmente en vertical para evitar anchuras excesivas.
+- **Selector de layout en toolbar**: botones para cambiar entre modos horizontal, vertical y radial con iconos distintivos.
+- **Botón "Reorganizar mapa"**: reaplica el layout activo sobre todos los nodos visibles.
+- **Plegado/desplegado de ramas**: botón de colapso en nodos con hijos, con indicador de descendientes ocultos (ej: "+12").
+- **Persistencia de layout y colapso**: el modo de layout y los nodos colapsados se guardan en `localStorage` entre sesiones.
+- **Ancho fijo de nodos**: los nodos tienen anchura máxima de 240px para evitar crecimiento horizontal desproporcionado. El contenido textual hace wrap automáticamente.
+- **Panel lateral de índice (OutlinePanel)**: navegación jerárquica del mapa como árbol textual, con búsqueda y selección de nodos.
+- **Filtros avanzados**: filtrado por texto (atenúa), etiquetas y niveles (ocultan no coincidentes). Las opciones de filtro permanecen visibles aunque los nodos estén ocultos.
+- **Undo/Redo real**: historial completo con `Ctrl+Z` / `Ctrl+Y`, botones en toolbar, límite de 100 entradas.
+- **Exportación PNG**: botón en toolbar, exporta la vista actual con fondo blanco.
+- **Movimiento manual con persistencia**: las posiciones de nodos arrastrados se guardan en `localStorage` y se restauran al recargar.
+- **Mejoras de navegación**: botones "Ver todo" y "Centrar selección" en la toolbar.
+- **Edge types adaptados al layout**: `smoothstep` para horizontal/vertical, `bezier` para radial.
+- **Indicador visible de nodos colapsados**: badge con estilo `primary` y número de descendientes ocultos.
+- **Botón mostrar/ocultar cuerpo**: movido a la toolbar con icono 📄/📝.
+- **Botón mostrar/ocultar desarrolladas**: en toolbar con iconos Check/Circle.
+- **Zoom sin restricciones**: eliminado `minZoom` restrictivo, se permite zoom libre hasta 0.01x.
+- **Parser robusto**: ignora frontmatter YAML (`---`) y bloques de código (triple backtick).
+- **Hooks especializados**: `useLayoutMode`, `useCollapsedNodes`, `useMapFilters`, `useNodeOperations`, `useClipboard`, `useLayoutOperations`, `useMapExport`.
+- **Algoritmos de layout optimizados**: implementación separada para cada modo en `src/lib/layout/`, con utilidades compartidas.
+
+### Cambiado
+
+- **`mdToNodes.ts`**: ahora acepta parámetro `layoutMode` para aplicar el layout deseado al parsear Markdown.
+- **`MindMapNodeData`**: campos nuevos `hasChildren`, `isCollapsed`, `descendantsCount`, `layoutMode`.
+- **`NodeCallbacksContext`**: añade callback opcional `onToggleCollapse` para manejar colapso desde nodos.
+- **`Toolbar`**: rediseñado con grupos de controles (layout, undo/redo, vista, exportar, paneles, operaciones, colapso). Nuevo orden: Layout → Undo/Redo → Vista → Exportar → Paneles → Nodos → Colapso.
+- **`NodeComponent`**: botón de colapso/expansión, contador de descendientes con badge, etiqueta "Completada" para ramas desarrolladas, ancho fijo de nodo, comparación `areNodePropsEqual` para rendimiento en drag.
+- **`EdgeComponent`**: ahora lee `data.layoutMode` del edge para elegir entre `smoothstep` y `bezier`.
+- **`MindMapCanvas`**: `fitView` controlado (no automático), `minZoom={0.01}`, `maxZoom={4}`.
+- **`FileBar`**: eliminado campo de búsqueda (movido a FiltersPanel).
+- **`FiltersPanel`**: simplificado, sin debounce, recibe todos los nodos para mantener opciones visibles.
+- **`useMapFilters`**: añadido `setFilters` directo para actualización completa de estado.
+- **Traducciones**: añadidas claves para layout, colapso, índice, filtros, exportación, cuerpo, desarrolladas, undo/redo en español e inglés.
+- **Rendimiento**: `visibleNodes`, `processedNodes`, `processedEdges`, `matchesSearchText`, `hiddenNodeIds` envueltos en `useMemo`. `NodeComponent` con `React.memo` y comparación personalizada.
+
+### Corregido
+
+- **Solapes en mapas grandes**: el layout horizontal compacto evita que muchos hermanos ensanchen excesivamente el mapa.
+- **fitView automático**: ya no se ejecuta permanentemente en cada render, solo en eventos controlados (cambio de layout, abrir archivo, acciones manuales).
+- **Posiciones manuales**: implementada persistencia en `localStorage` con limpieza de obsoletas.
+- **Parser Markdown**: robustez mejorada para frontmatter YAML, bloques de código, múltiples raíces.
+- **Colapsar todo**: corregido (antes expandía en lugar de colapsar).
+- **Filtros por nivel**: ahora sincronizan correctamente el estado con el panel.
+- **Botón centrar selección**: corregido (usaba coordenadas del nodo en lugar de ID).
+- **Reorden de toolbar**: botones de paneles movidos justo después de exportar PNG.
+
+### Técnico
+
+- **Arquitectura de layout**: carpeta `src/lib/layout/` con archivos separados para cada algoritmo y utilidades compartidas.
+- **Tipos nuevos**: `LayoutMode`, `NodeWidthMode`, `MapFilters`, `HistorySnapshot`, `HistoryReason`, `HORIZONTAL_LAYOUT`, `VERTICAL_LAYOUT`, `RADIAL_LAYOUT`, `NODE_WIDTH_CONFIG` en `types.ts`.
+- **Hooks personalizados**: `useNodeOperations` y `useClipboard` extraen ~180 líneas de lógica de `App.tsx`.
+- **Tests unitarios**: suite de tests para algoritmos de layout, filtros y utilidades (Vitest).
+- **Dependencias**: añadidas `lucide-react` (iconos), `html-to-image` (exportación PNG).
+- **Memorización**: `useMemo` en todas las computaciones derivadas de nodos para evitar re-renders durante drag.
+
 ## v0.1.0 (2026-06-23)
 
 ### Nuevo

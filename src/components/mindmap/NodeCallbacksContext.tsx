@@ -7,6 +7,7 @@ export interface NodeCallbacks {
   onStartEdit: (id: string) => void
   onStopEdit: (id: string) => void
   onSelect: (id: string) => void
+  onToggleCollapse?: (id: string) => void
 }
 
 export const NodeCallbacksContext = createContext<NodeCallbacks | null>(null)

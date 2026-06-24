@@ -1,18 +1,27 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
-import { ReactFlowProvider, OnSelectionChangeParams } from 'reactflow'
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
+import { ReactFlowProvider, OnSelectionChangeParams, useReactFlow } from 'reactflow'
 import MindMapCanvas from './components/mindmap/MindMapCanvas'
 import FileBar from './components/FileBar'
 import Toolbar from './components/mindmap/Toolbar'
+import OutlinePanel from './components/mindmap/OutlinePanel'
+import FiltersPanel from './components/mindmap/FiltersPanel'
 import { NodeCallbacksProvider } from './components/mindmap/NodeCallbacksContext'
 import { useFileSystem } from './lib/fileSystem/useFileSystem'
 import { mdToNodes } from './lib/parser/mdToNodes'
 import { nodesToMd } from './lib/compiler/nodesToMd'
-import type { MindMapNode, MindMapNodeData } from './lib/types'
+import type { MindMapNode, MindMapNodeData, LayoutMode } from './lib/types'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoSave } from './hooks/useAutoSave'
 import { applyNodeChanges, applyEdgeChanges, addEdge } from 'reactflow'
 import type { Node, Edge, OnNodesChange, OnEdgesChange, OnConnect } from 'reactflow'
 import { I18nProvider, useI18n } from './lib/i18n'
+import { useLayoutMode } from './hooks/useLayoutMode'
+import { useCollapsedNodes } from './hooks/useCollapsedNodes'
+import { useMapFilters } from './hooks/useMapFilters'
+import { useNodeOperations } from './hooks/useNodeOperations'
+import { useClipboard } from './hooks/useClipboard'
+import { toParsedNodes, applyLayout, getHiddenDescendantIds } from './lib/layout'
+import { useMapExport } from './hooks/useMapExport'
 
 function downloadMd(md: string, filename: string) {
   const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' })
@@ -24,33 +33,6 @@ function downloadMd(md: string, filename: string) {
   a.click()
   document.body.removeChild(a)
   URL.revokeObjectURL(url)
-}
-
-function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node<MindMapNodeData>[] {
-  const childrenOf = new Map<string, string[]>()
-  edges.forEach((e) => {
-    const list = childrenOf.get(e.source) || []
-    list.push(e.target)
-    childrenOf.set(e.source, list)
-  })
-
-  const developedById = (id: string): boolean =>
-    !!nodes.find((n) => n.id === id)?.data.developed
-
-  function allDescendantsDeveloped(id: string): boolean {
-    const children = childrenOf.get(id) || []
-    if (children.length === 0) {
-      return developedById(id)
-    }
-    return children.every((c) => developedById(c) && allDescendantsDeveloped(c))
-  }
-
-  return nodes.map((n) => {
-    const children = childrenOf.get(n.id) || []
-    if (children.length === 0) return n
-    const developed = children.every((c) => allDescendantsDeveloped(c))
-    return { ...n, data: { ...n.data, developed } }
-  })
 }
 
 function nodesToMindMap(nodes: Node<MindMapNodeData>[], edges: Edge[]): MindMapNode[] {
@@ -74,14 +56,29 @@ function nodesToMindMap(nodes: Node<MindMapNodeData>[], edges: Edge[]): MindMapN
   }))
 }
 
+function getDescendantsCount(nodeId: string, edges: Edge[]): number {
+  const children = edges.filter(e => e.source === nodeId).map(e => e.target)
+  let count = children.length
+  
+  for (const childId of children) {
+    count += getDescendantsCount(childId, edges)
+  }
+  
+  return count
+}
+
 function AppContent() {
   const { t } = useI18n()
+  const reactFlowInstance = useReactFlow()
+  
+  // Referencias
   const nodesRef = useRef<Node<MindMapNodeData>[]>([])
   const edgesRef = useRef<Edge[]>([])
   const handleRef = useRef<FileSystemFileHandle | null>(null)
   const dirtyRef = useRef(false)
-  const clipboardRef = useRef<{ nodes: Node<MindMapNodeData>[]; edges: Edge[] } | null>(null)
+  const canvasContainerRef = useRef<HTMLDivElement>(null)
 
+  // Estados principales
   const [fileName, setFileName] = useState<string | null>(null)
   const [nodes, setNodes] = useState<Node<MindMapNodeData>[]>([])
   const [edges, setEdges] = useState<Edge[]>([])
@@ -89,10 +86,107 @@ function AppContent() {
   const selectedIdsRef = useRef<Set<string>>(new Set())
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null)
   const [dirty, setDirty] = useState(false)
-  const [hasClipboard, setHasClipboard] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
   const [showBody, setShowBody] = useState(false)
+  
+  // Estados nuevos para las mejoras
+  const { layoutMode, setLayoutMode } = useLayoutMode()
+  const { collapsedNodeIds, toggleCollapse, expandAll, collapseAll } = useCollapsedNodes()
+  const { filters, setFilters, clearFilters } = useMapFilters()
+  const [showDevelopedBranches, setShowDevelopedBranches] = useState(true)
+  const [fitViewRequested, setFitViewRequested] = useState(false)
+  const [outlineVisible, setOutlineVisible] = useState(false)
+  const [filtersVisible, setFiltersVisible] = useState(false)
 
+  // Manual positions (persisted in localStorage)
+  const [manualPositions, setManualPositions] = useState<Record<string, { x: number; y: number }>>(() => {
+    try {
+      const saved = localStorage.getItem('mdmap_manual_positions')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
+
+  // Undo/Redo
+  const historyRef = useRef<Array<{ nodes: Node<MindMapNodeData>[]; edges: Edge[] }>>([])
+  const futureRef = useRef<Array<{ nodes: Node<MindMapNodeData>[]; edges: Edge[] }>>([])
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
+
+  const pushHistory = useCallback(() => {
+    historyRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodesRef.current)),
+      edges: JSON.parse(JSON.stringify(edgesRef.current)),
+    })
+    if (historyRef.current.length > 100) {
+      historyRef.current.shift()
+    }
+    futureRef.current = []
+    setCanUndo(historyRef.current.length > 0)
+    setCanRedo(false)
+  }, [])
+
+  const handleUndo = useCallback(() => {
+    if (historyRef.current.length === 0) return
+    
+    futureRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodesRef.current)),
+      edges: JSON.parse(JSON.stringify(edgesRef.current)),
+    })
+    
+    const prev = historyRef.current.pop()!
+    setNodes(prev.nodes)
+    setEdges(prev.edges)
+    setFitViewRequested(true)
+    
+    setCanUndo(historyRef.current.length > 0)
+    setCanRedo(true)
+  }, [])
+
+  const handleRedo = useCallback(() => {
+    if (futureRef.current.length === 0) return
+    
+    historyRef.current.push({
+      nodes: JSON.parse(JSON.stringify(nodesRef.current)),
+      edges: JSON.parse(JSON.stringify(edgesRef.current)),
+    })
+    
+    const next = futureRef.current.pop()!
+    setNodes(next.nodes)
+    setEdges(next.edges)
+    setFitViewRequested(true)
+    
+    setCanUndo(true)
+    setCanRedo(futureRef.current.length > 0)
+  }, [])
+
+  // Export PNG
+  const { exportAndDownload } = useMapExport()
+
+  const handleExportPng = useCallback(async () => {
+    if (!canvasContainerRef.current) return
+    const container = canvasContainerRef.current.querySelector('.react-flow') as HTMLElement
+    if (!container) return
+    const success = await exportAndDownload(container, {
+      format: 'png',
+      scope: 'current',
+      background: 'white',
+    }, `mdmap_${fileName || 'export'}.png`)
+    if (!success) {
+      console.error('Error al exportar PNG')
+    }
+  }, [exportAndDownload, fileName])
+
+  // Handle node drag stop - save manual position
+  const handleNodeDragStop: import('reactflow').NodeDragHandler = useCallback((_event, node) => {
+    setManualPositions((prev) => {
+      const next = { ...prev, [node.id]: { x: node.position.x, y: node.position.y } }
+      localStorage.setItem('mdmap_manual_positions', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  // Actualizar referencias
   nodesRef.current = nodes
   edgesRef.current = edges
   selectedIdsRef.current = selectedNodeIds
@@ -159,10 +253,66 @@ function AppContent() {
     setDirty(true)
   }, [])
 
+  // Node operations hook (after all dependencies are declared)
+  const {
+    handleAddChild,
+    handleAddSibling,
+    handleAddRoot,
+    handleDeleteNodes,
+    handleDeleteNode,
+    handleEditNode,
+    handleStartEdit,
+    handleStopEdit: handleStopEditOp,
+  } = useNodeOperations({
+    nodesRef,
+    edgesRef,
+    setNodes,
+    setEdges,
+    setSelectedNodeIds,
+    setEditingNodeId,
+    markDirty,
+    scheduleSave,
+    pushHistory,
+    t,
+  })
+
+  const handleStopEdit = useCallback((id: string) => {
+    handleStopEditOp(id, editingNodeId)
+  }, [handleStopEditOp, editingNodeId])
+
+  // Clipboard hook
+  const {
+    hasClipboard,
+    handleCopy,
+    handlePaste,
+  } = useClipboard({
+    nodesRef,
+    edgesRef,
+    setNodes,
+    setEdges,
+    setSelectedNodeIds,
+    setEditingNodeId,
+    markDirty,
+    scheduleSave,
+    editingNodeId,
+    selectedNodeIds,
+  })
+
   const loadParsedMd = useCallback((md: string) => {
-    const parsed = mdToNodes(md)
+    const parsed = mdToNodes(md, layoutMode)
+    // Clean up obsolete manual positions (nodes that no longer exist)
+    const validIds = new Set(parsed.map(n => n.id))
+    const cleanManualPositions: Record<string, { x: number; y: number }> = {}
+    for (const [id, pos] of Object.entries(manualPositions)) {
+      if (validIds.has(id)) {
+        cleanManualPositions[id] = pos
+      }
+    }
+    setManualPositions(cleanManualPositions)
+    
     setNodes(parsed.map((n) => ({
-      id: n.id, type: 'mindMap', position: n.position,
+      id: n.id, type: 'mindMap',
+      position: cleanManualPositions[n.id] || n.position,
       data: { text: n.text, level: n.level, tags: n.tags, developed: n.developed },
     })))
     setEdges(parsed.flatMap((n) =>
@@ -172,6 +322,88 @@ function AppContent() {
     ))
     setSelectedNodeIds(new Set())
     setEditingNodeId(null)
+    setFitViewRequested(true)
+  }, [layoutMode, manualPositions])
+
+  // Handlers de layout
+  const handleLayoutChange = useCallback((mode: LayoutMode) => {
+    if (mode === layoutMode) return
+    
+    pushHistory()
+
+    const parsedNodes = toParsedNodes(nodesRef.current, edgesRef.current)
+    const positions = applyLayout(parsedNodes, mode)
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        position: positions[node.id] ?? node.position,
+        data: { ...node.data, layoutMode: mode },
+      }))
+    )
+
+    setLayoutMode(mode)
+    markDirty()
+    scheduleSave()
+    setFitViewRequested(true)
+  }, [layoutMode, setLayoutMode, markDirty, scheduleSave])
+
+  const handleReorganize = useCallback(() => {
+    const parsedNodes = toParsedNodes(nodesRef.current, edgesRef.current)
+    const positions = applyLayout(parsedNodes, layoutMode)
+
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        position: positions[node.id] ?? node.position,
+      }))
+    )
+
+    markDirty()
+    scheduleSave()
+    setFitViewRequested(true)
+  }, [layoutMode, markDirty, scheduleSave])
+
+  // Handlers de paneles
+  const handleToggleCollapse = useCallback((nodeId: string) => {
+    toggleCollapse(nodeId)
+    markDirty()
+    scheduleSave()
+  }, [toggleCollapse, markDirty, scheduleSave])
+
+  const handleExpandAll = useCallback(() => {
+    expandAll()
+  }, [expandAll])
+
+  const handleCollapseAll = useCallback(() => {
+    // Colapsar TODOS los nodos que tienen hijos (incluyendo raíces)
+    const uniqueSources = new Set<string>()
+    edgesRef.current.forEach(e => uniqueSources.add(e.source))
+    collapseAll(Array.from(uniqueSources))
+  }, [collapseAll])
+
+  const handleFitView = useCallback(() => {
+    setFitViewRequested(true)
+  }, [])
+
+  const handleCenterSelection = useCallback(() => {
+    if (selectedNodeIds.size === 1) {
+      const nodeId = Array.from(selectedNodeIds)[0]
+      if (nodeId) {
+        const node = nodesRef.current.find(n => n.id === nodeId)
+        if (node) {
+          reactFlowInstance.setCenter(node.position.x, node.position.y, { duration: 500, zoom: 1 })
+        }
+      }
+    }
+  }, [selectedNodeIds, reactFlowInstance])
+
+  const handleToggleOutline = useCallback(() => {
+    setOutlineVisible(prev => !prev)
+  }, [])
+
+  const handleToggleFilters = useCallback(() => {
+    setFiltersVisible(prev => !prev)
   }, [])
 
   const handleOpenFile = useCallback(async () => {
@@ -185,6 +417,10 @@ function AppContent() {
       setFileName(state.fileName)
       dirtyRef.current = false
       setDirty(false)
+      historyRef.current = []
+      futureRef.current = []
+      setCanUndo(false)
+      setCanRedo(false)
       loadParsedMd(md)
     } catch (e) {
       if (!(e instanceof Error && e.name === 'AbortError')) {
@@ -217,204 +453,6 @@ function AppContent() {
     scheduleSave()
   }, [markDirty, scheduleSave])
 
-  const handleAddChild = useCallback((parentId: string) => {
-    const id = Math.random().toString(36).slice(2, 9)
-    const parentNode = nodesRef.current.find((n) => n.id === parentId)
-    if (!parentNode) return
-
-    const siblings = edgesRef.current
-      .filter((e) => e.source === parentId)
-      .map((e) => nodesRef.current.find((n) => n.id === e.target))
-      .filter(Boolean)
-      .length
-
-    const level = (parentNode.data.level || 0) + 1
-    const verticalGap = 100
-    const horizontalGap = 60
-    const nodeWidth = 200
-
-    const totalSiblingsWidth = nodeWidth * siblings + horizontalGap * Math.max(0, siblings - 1)
-    const newX = parentNode.position.x - totalSiblingsWidth / 2 + (nodeWidth * siblings) / 2
-    const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: newX, y: parentNode.position.y + verticalGap },
-      data: { text: t('newNode'), level, tags: [], developed: false },
-    }
-    setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
-    setEdges((eds) => [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }])
-    setSelectedNodeIds(new Set([id]))
-    setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [markDirty, scheduleSave, t])
-
-  const handleAddSibling = useCallback((sourceId: string) => {
-    const source = nodesRef.current.find((n) => n.id === sourceId)
-    if (!source) return
-    const parentId = edgesRef.current.find((e) => e.target === sourceId)?.source ?? null
-    const id = Math.random().toString(36).slice(2, 9)
-    const nodeWidth = 200
-    const gap = 40
-
-    const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: source.position.x + nodeWidth + gap, y: source.position.y },
-      data: { text: t('newNode'), level: source.data.level, tags: [], developed: false },
-    }
-    setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
-    setEdges((eds) => parentId
-      ? [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }]
-      : eds)
-    setSelectedNodeIds(new Set([id]))
-    setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [markDirty, scheduleSave, t])
-
-  const handleAddRoot = useCallback(() => {
-    const id = Math.random().toString(36).slice(2, 9)
-    const roots = nodesRef.current.filter((n) => n.data.level === 0)
-    const nodeWidth = 200
-    const horizontalGap = 60
-    const totalWidth = nodeWidth * roots.length + horizontalGap * roots.length
-    const startX = -totalWidth / 2 + nodeWidth / 2
-
-    const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: startX, y: 0 },
-      data: { text: t('newRoot'), level: 0, tags: [], developed: false },
-    }
-    setNodes((nds) => [...nds, newNode])
-    setSelectedNodeIds(new Set([id]))
-    setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [markDirty, scheduleSave, t])
-
-  const handleDeleteNodes = useCallback((ids: string[]) => {
-    if (ids.length === 0) return
-    const toDelete = new Set(ids)
-    let changed = true
-    while (changed) {
-      changed = false
-      edgesRef.current.forEach((e) => {
-        if (toDelete.has(e.source) && !toDelete.has(e.target)) {
-          toDelete.add(e.target)
-          changed = true
-        }
-      })
-    }
-    if (toDelete.size > 1) {
-      if (!confirm(t('deleteConfirm', { count: toDelete.size }))) return
-    }
-    setNodes((nds) => {
-      const filtered = nds.filter((n) => !toDelete.has(n.id))
-      return recomputeDeveloped(filtered, edgesRef.current.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target)))
-    })
-    setEdges((eds) => eds.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target)))
-    setSelectedNodeIds((prev) => {
-      const next = new Set(prev)
-      for (const id of prev) {
-        if (toDelete.has(id)) next.delete(id)
-      }
-      return next
-    })
-    if (editingNodeId && toDelete.has(editingNodeId)) setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [editingNodeId, markDirty, scheduleSave, t])
-
-  const handleDeleteNode = useCallback((id: string) => {
-    handleDeleteNodes([id])
-  }, [handleDeleteNodes])
-
-  const handleEditNode = useCallback((id: string, text: string, tags: string[], developed?: boolean) => {
-    setNodes((nds) => {
-      const updated = nds.map((n) => (n.id === id ? {
-        ...n,
-        data: { ...n.data, text, tags, developed: developed ?? n.data.developed ?? false, editing: false },
-      } : n))
-      return recomputeDeveloped(updated, edgesRef.current)
-    })
-    setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [markDirty, scheduleSave])
-
-  const handleStartEdit = useCallback((id: string) => {
-    setNodes((nds) => nds.map((n) => (n.id === id ? {
-      ...n,
-      data: { ...n.data, editing: true },
-    } : n)))
-    setEditingNodeId(id)
-  }, [])
-
-  const handleStopEdit = useCallback((id: string) => {
-    if (editingNodeId && editingNodeId !== id) return
-    setNodes((nds) => nds.map((n) => (n.id === editingNodeId ? {
-      ...n,
-      data: { ...n.data, editing: false },
-    } : n)))
-    setEditingNodeId(null)
-  }, [editingNodeId])
-
-  const handleCopy = useCallback(() => {
-    if (selectedNodeIds.size === 0 || editingNodeId) return
-    const ids = new Set(selectedNodeIds)
-    let changed = true
-    while (changed) {
-      changed = false
-      edgesRef.current.forEach((e) => {
-        if (ids.has(e.source) && !ids.has(e.target)) {
-          ids.add(e.target)
-          changed = true
-        }
-      })
-    }
-    clipboardRef.current = {
-      nodes: nodesRef.current.filter((n) => ids.has(n.id)).map((n) => ({ ...n })),
-      edges: edgesRef.current.filter((e) => ids.has(e.source) && ids.has(e.target)).map((e) => ({ ...e })),
-    }
-    setNodes((nds) => nds.map((n) => ({ ...n, selected: false })))
-    setSelectedNodeIds(new Set())
-    setHasClipboard(true)
-  }, [editingNodeId, selectedNodeIds])
-
-  const handlePaste = useCallback(() => {
-    if (!clipboardRef.current || editingNodeId) return
-    const { nodes: clipNodes, edges: clipEdges } = clipboardRef.current
-    if (clipNodes.length === 0) return
-
-    const idMap = new Map<string, string>()
-    const newNodes: Node<MindMapNodeData>[] = clipNodes.map((n) => {
-      const newId = Math.random().toString(36).slice(2, 9)
-      idMap.set(n.id, newId)
-      return {
-        ...n,
-        id: newId,
-        selected: true,
-        position: { x: n.position.x + 40, y: n.position.y + 40 },
-        data: { ...n.data },
-      }
-    })
-    const newEdges: Edge[] = clipEdges.map((e) => ({
-      ...e,
-      id: `${idMap.get(e.source)!}-${idMap.get(e.target)!}`,
-      source: idMap.get(e.source)!,
-      target: idMap.get(e.target)!,
-    }))
-    setNodes((nds) => {
-      const allNodes = recomputeDeveloped([...nds, ...newNodes], [...edgesRef.current, ...newEdges])
-      const pastedIds = new Set(newNodes.map((n) => n.id))
-      return allNodes.map((n) => ({ ...n, selected: pastedIds.has(n.id) }))
-    })
-    setEdges((eds) => [...eds, ...newEdges])
-    setSelectedNodeIds(new Set(newNodes.map((n) => n.id)))
-    setEditingNodeId(null)
-    markDirty()
-    scheduleSave()
-  }, [editingNodeId, markDirty, scheduleSave])
-
   useEffect(() => {
     if (nodes.length === 0) {
       loadParsedMd(t('initialMd'))
@@ -423,6 +461,8 @@ function AppContent() {
 
   useKeyboardShortcuts({
     onSave: handleSave,
+    onUndo: handleUndo,
+    onRedo: handleRedo,
     onDelete: () => {
       if (selectedIdsRef.current.size > 0 && !editingNodeId) {
         handleDeleteNodes(Array.from(selectedIdsRef.current))
@@ -442,6 +482,73 @@ function AppContent() {
     },
   })
 
+  // Handler para cuando fitView se ejecuta
+  const handleFitViewHandled = useCallback(() => {
+    setFitViewRequested(false)
+  }, [])
+
+  // Nodos ocultos por colapso
+  const hiddenNodeIds = useMemo(() => 
+    getHiddenDescendantIds(collapsedNodeIds, edgesRef.current),
+  [collapsedNodeIds, edges])
+
+  // Qué nodos coinciden con filtros de TEXTO (solo atenuar, no ocultar)
+  const matchesSearchText = useMemo(() => {
+    if (!filters.searchText.trim()) return null
+    const query = filters.searchText.trim().toLowerCase()
+    return new Set(
+      nodes.filter((node) => {
+        const text = (node.data.text || '').toLowerCase()
+        const tags = (node.data.tags || []).join(' ').toLowerCase()
+        return text.includes(query) || tags.includes(query)
+      }).map(n => n.id)
+    )
+  }, [nodes, filters.searchText])
+
+  const hasSearchFilter = filters.searchText.trim().length > 0
+
+  // Nodos visibles: ocultar colapsados, developed, y no coincidentes con tags/levels
+  const visibleNodes = useMemo(() => 
+    nodes.filter((node) => {
+      if (hiddenNodeIds.has(node.id)) return false
+      if (!showDevelopedBranches && node.data.developed) return false
+      // Ocultar si no coincide con filtros de tags/levels
+      if (filters.tags.length > 0) {
+        const nodeTags = node.data.tags || []
+        if (!filters.tags.some(tag => nodeTags.includes(tag))) return false
+      }
+      if (filters.levels.length > 0) {
+        if (!filters.levels.includes(node.data.level)) return false
+      }
+      return true
+    }),
+  [nodes, hiddenNodeIds, showDevelopedBranches, filters.tags, filters.levels])
+
+  // Nodos procesados: aplicar edición y atenuación por búsqueda de texto
+  const processedNodes = useMemo(() =>
+    visibleNodes.map(node => ({
+      ...node,
+      data: {
+        ...node.data,
+        editing: editingNodeId === node.id,
+        dimmed: hasSearchFilter && matchesSearchText !== null && !matchesSearchText.has(node.id),
+        showBody,
+        hasChildren: edges.some(e => e.source === node.id),
+        isCollapsed: collapsedNodeIds.has(node.id),
+        descendantsCount: getDescendantsCount(node.id, edges),
+      },
+    })),
+  [visibleNodes, editingNodeId, hasSearchFilter, matchesSearchText, showBody, edges, collapsedNodeIds])
+
+  const processedEdges = useMemo(() =>
+    edges.filter(edge =>
+      !hiddenNodeIds.has(edge.source) && !hiddenNodeIds.has(edge.target)
+    ).map(edge => ({
+      ...edge,
+      data: { ...edge.data, layoutMode },
+    })),
+  [edges, hiddenNodeIds, layoutMode])
+
   const setSelectedNodeIdsStable = useCallback((ids: Set<string>) => {
     setSelectedNodeIds((prev) => {
       if (prev.size === ids.size && Array.from(prev).every((id) => ids.has(id))) {
@@ -455,52 +562,106 @@ function AppContent() {
     <div className="h-screen w-screen flex flex-col bg-background text-foreground">
       <FileBar
         fileName={fileName ? `${fileName}${dirty ? ' *' : ''}` : dirty ? t('unsaved') : null}
-        searchQuery={searchQuery}
-        showBody={showBody}
-        onSearchChange={setSearchQuery}
-        onToggleShowBody={setShowBody}
         onOpenFile={handleOpenFile}
         onSave={handleSave}
       />
-      <main className="flex-1 relative">
-        <Toolbar
-          selectedNodeIds={selectedNodeIds}
-          editingNodeId={editingNodeId}
-          hasClipboard={hasClipboard}
-          onAddRoot={handleAddRoot}
-          onAddChild={() => {
-            const first = Array.from(selectedNodeIds)[0]
-            if (first) handleAddChild(first)
-          }}
-          onDelete={() => handleDeleteNodes(Array.from(selectedNodeIds))}
-          onCopy={handleCopy}
-          onPaste={handlePaste}
-         />
-         <NodeCallbacksProvider
-          onAddChild={handleAddChild}
-          onDelete={handleDeleteNode}
-          onEdit={handleEditNode}
-          onStartEdit={handleStartEdit}
-          onStopEdit={handleStopEdit}
-          onSelect={(id) => {
-            setSelectedNodeIdsStable(new Set([id]))
-            if (editingNodeId && id !== editingNodeId) setEditingNodeId(null)
-          }}
-        >
-          <MindMapCanvas
-            nodes={nodes}
-            edges={edges}
-            editingNodeId={editingNodeId}
-            searchQuery={searchQuery}
-            showBody={showBody}
-            onSelectionChange={(params: OnSelectionChangeParams) => {
-              setSelectedNodeIdsStable(new Set(params.nodes.map((n) => n.id)))
+      <main className="flex-1 relative flex">
+        {outlineVisible && (
+          <div className="w-72 border-r border-border">
+          <OutlinePanel
+            nodes={visibleNodes}
+            edges={processedEdges}
+            selectedNodeId={Array.from(selectedNodeIds)[0]}
+            collapsedNodeIds={collapsedNodeIds}
+            onToggleCollapse={handleToggleCollapse}
+            onSelectNode={(id) => setSelectedNodeIdsStable(new Set([id]))}
+            onCenterNode={(id) => {
+              const node = nodesRef.current.find(n => n.id === id)
+              if (node) {
+                reactFlowInstance.setCenter(node.position.x, node.position.y, { duration: 500, zoom: 1 })
+              }
             }}
-            onNodesChange={handleNodesChange}
-            onEdgesChange={handleEdgesChange}
-            onConnect={handleConnect}
           />
-        </NodeCallbacksProvider>
+          </div>
+        )}
+        
+        {filtersVisible && (
+          <div className="w-72 border-r border-border">
+            <FiltersPanel
+              nodes={nodes}
+              filters={filters}
+              onFiltersChange={(newFilters) => setFilters(newFilters)}
+              onClearFilters={() => clearFilters()}
+              showDevelopedBranches={showDevelopedBranches}
+              onToggleShowDeveloped={() => setShowDevelopedBranches(prev => !prev)}
+            />
+          </div>
+        )}
+
+        <div className="flex-1 relative" ref={canvasContainerRef}>
+          <Toolbar
+            selectedNodeIds={selectedNodeIds}
+            editingNodeId={editingNodeId}
+            hasClipboard={hasClipboard}
+            layoutMode={layoutMode}
+            onAddRoot={handleAddRoot}
+            onAddChild={() => {
+              const first = Array.from(selectedNodeIds)[0]
+              if (first) handleAddChild(first)
+            }}
+            onDelete={() => handleDeleteNodes(Array.from(selectedNodeIds))}
+            onCopy={handleCopy}
+            onPaste={handlePaste}
+            onLayoutChange={handleLayoutChange}
+            onRelayout={handleReorganize}
+            onExpandAll={handleExpandAll}
+            onCollapseAll={handleCollapseAll}
+            onToggleOutline={handleToggleOutline}
+            onToggleFilters={handleToggleFilters}
+            onToggleDeveloped={() => setShowDevelopedBranches(prev => !prev)}
+            onFitView={handleFitView}
+            onCenterSelection={handleCenterSelection}
+            outlineVisible={outlineVisible}
+            filtersVisible={filtersVisible}
+            showDevelopedBranches={showDevelopedBranches}
+            showBody={showBody}
+            onToggleShowBody={() => setShowBody(prev => !prev)}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onExportPng={handleExportPng}
+          />
+          <NodeCallbacksProvider
+            onAddChild={handleAddChild}
+            onDelete={handleDeleteNode}
+            onEdit={handleEditNode}
+            onStartEdit={handleStartEdit}
+            onStopEdit={handleStopEdit}
+            onSelect={(id) => {
+              setSelectedNodeIdsStable(new Set([id]))
+              if (editingNodeId && id !== editingNodeId) setEditingNodeId(null)
+            }}
+            onToggleCollapse={handleToggleCollapse}
+          >
+            <MindMapCanvas
+              nodes={processedNodes}
+              edges={processedEdges}
+              editingNodeId={editingNodeId}
+              searchQuery={filters.searchText}
+              showBody={showBody}
+              fitViewRequested={fitViewRequested}
+              onFitViewHandled={handleFitViewHandled}
+              onSelectionChange={(params: OnSelectionChangeParams) => {
+                setSelectedNodeIdsStable(new Set(params.nodes.map((n) => n.id)))
+              }}
+              onNodesChange={handleNodesChange}
+              onEdgesChange={handleEdgesChange}
+              onConnect={handleConnect}
+              onNodeDragStop={handleNodeDragStop}
+            />
+          </NodeCallbacksProvider>
+        </div>
       </main>
     </div>
   )

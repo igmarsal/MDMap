@@ -14,6 +14,8 @@ const translations: Record<Lang, Record<string, string>> = {
     noFileOpen: 'Sin archivo abierto',
     searchPlaceholder: 'Buscar nodos...',
     body: 'Cuerpo',
+    showBody: 'Mostrar cuerpo',
+    hideBody: 'Ocultar cuerpo',
     openFile: 'Abrir .md',
     changeFile: 'Cambiar archivo...',
     save: 'Guardar',
@@ -25,6 +27,44 @@ const translations: Record<Lang, Record<string, string>> = {
     copy: 'Copiar',
     delete: '✕ Borrar',
     paste: 'Pegar',
+
+    // Layout
+    layoutMode: 'Modo de disposición',
+    layout_horizontal: 'Horizontal (derecha)',
+    layout_vertical: 'Vertical (abajo)',
+    layout_radial: 'Radial (circular)',
+    relayout: 'Reorganizar mapa',
+    fitView: 'Ver todo',
+    centerSelection: 'Centrar selección',
+
+    // Collapse/Expand
+    collapseBranch: 'Plegar rama',
+    expandBranch: 'Desplegar rama',
+    expandAll: 'Expandir todo',
+    collapseAll: 'Colapsar todo',
+
+    // Outline Panel
+    outlinePanel: 'Índice del mapa',
+    showOutline: 'Mostrar índice',
+    hideOutline: 'Ocultar índice',
+
+    // Filters
+    filterByTag: 'Filtrar por etiqueta',
+    filterByLevel: 'Filtrar por nivel',
+    clearFilters: 'Limpiar filtros',
+
+    // Developed branches
+    showDeveloped: 'Mostrar desarrolladas',
+    hideDeveloped: 'Ocultar desarrolladas',
+    developedLabel: 'Completada',
+
+    // Export
+    exportPng: 'Exportar PNG',
+    exportCurrentView: 'Exportar vista actual',
+    exportFullMap: 'Exportar mapa completo',
+    exportSelection: 'Exportar selección',
+    backgroundWhite: 'Fondo blanco',
+    backgroundTransparent: 'Fondo transparente',
 
     // NodeComponent
     nodeTitlePlaceholder: 'Título del nodo...',
@@ -55,6 +95,8 @@ const translations: Record<Lang, Record<string, string>> = {
     noFileOpen: 'No file open',
     searchPlaceholder: 'Search nodes...',
     body: 'Body',
+    showBody: 'Show body',
+    hideBody: 'Hide body',
     openFile: 'Open .md',
     changeFile: 'Change file...',
     save: 'Save',
@@ -66,6 +108,44 @@ const translations: Record<Lang, Record<string, string>> = {
     copy: 'Copy',
     delete: '✕ Delete',
     paste: 'Paste',
+
+    // Layout
+    layoutMode: 'Layout mode',
+    layout_horizontal: 'Horizontal (right)',
+    layout_vertical: 'Vertical (down)',
+    layout_radial: 'Radial (circular)',
+    relayout: 'Reorganize map',
+    fitView: 'Fit view',
+    centerSelection: 'Center selection',
+
+    // Collapse/Expand
+    collapseBranch: 'Collapse branch',
+    expandBranch: 'Expand branch',
+    expandAll: 'Expand all',
+    collapseAll: 'Collapse all',
+
+    // Outline Panel
+    outlinePanel: 'Map outline',
+    showOutline: 'Show outline',
+    hideOutline: 'Hide outline',
+
+    // Filters
+    filterByTag: 'Filter by tag',
+    filterByLevel: 'Filter by level',
+    clearFilters: 'Clear filters',
+
+    // Developed branches
+    showDeveloped: 'Show developed',
+    hideDeveloped: 'Hide developed',
+    developedLabel: 'Completed',
+
+    // Export
+    exportPng: 'Export PNG',
+    exportCurrentView: 'Export current view',
+    exportFullMap: 'Export full map',
+    exportSelection: 'Export selection',
+    backgroundWhite: 'White background',
+    backgroundTransparent: 'Transparent background',
 
     // NodeComponent
     nodeTitlePlaceholder: 'Node title...',

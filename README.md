@@ -1,121 +1,209 @@
-# MDMap v0.1.0
+# MDMap v0.4.0 - Mapas Mentales Interactivos
 
-MDMap es una aplicación web para crear mapas mentales en formato Markdown. Permite editar nodos visualmente, organizar ideas en ramas, abrir y guardar archivos `.md`, y usar etiquetas para clasificar conceptos.
+> Herramienta de mapas mentales basada en Markdown con múltiples modos de visualización
 
-## Tecnologías
+MDMap es una aplicación web moderna para crear, visualizar y gestionar mapas mentales. Permite trabajar con documentos Markdown existentes de manera visual, con soporte para múltiples modos de disposición, filtros avanzados y una experiencia de usuario optimizada.
 
-- React 19 + TypeScript
-- Vite + React Flow
-- Tailwind CSS v4
+## 🚀 Características
 
-## Requisitos
+### Visualización Avanzada
 
-- Node.js 20 o superior
-- npm
+- **3 modos de layout**:
+  - **Horizontal** (predeterminado): Crece principalmente en vertical, ideal para mapas grandes
+  - **Vertical**: Diseño tradicional mejorado y más compacto
+  - **Radial**: Disposición circular para mapas equilibrados y exploratorios
+- **Nodos de ancho fijo**: Ancho máximo controlado (240px) con texto que hace wrap automáticamente
+- **Colapso de ramas**: Plegar/desplegar ramas para reducir ruido visual en mapas grandes
+- **Panel de índice**: Navegación jerárquica como árbol textual con búsqueda
 
-## Instalación
+### Gestión de Contenido
+
+- **Edición directa**: Doble clic en cualquier nodo para editar título, cuerpo, etiquetas y estado
+- **Título y cuerpo separados**: Primera línea como título, resto como cuerpo del nodo
+- **Etiquetas**: Soporte para etiquetas tipo `#importante`, `#central`, etc.
+- **Estado desarrollado**: Marcar ramas como completadas con indicador visual
+- **Auto-ocultación de desarrolladas**: Opción para ocultar ramas completadas
+
+### Operaciones
+
+- **Navegación por teclado**: Atajos para crear hijos (`Tab`), hermanos (`Shift+Tab`), guardar (`Ctrl+S`)
+- **Copiar y pegar**: `Ctrl+C`/`Ctrl+V` para duplicar nodos y subárboles
+- **Selección múltiple**: `Shift+Click` para seleccionar varios nodos
+- **Borrar**: `Delete` para eliminar nodos y descendientes
+- **Filtros avanzados**: Filtrar por texto, etiquetas y niveles
+
+### Importación/Exportación
+
+- **Markdown como fuente de verdad**: Compatible con documentos Markdown estándar
+- **Sintaxis extendida**: Soporte para `- Título | cuerpo`, `[x]` desarrollado, `#tag`
+- **Exportación PNG**: Exportar vista actual, mapa completo o selección
+- **File System Access API**: Guardar directamente en Chrome/Edge
+
+### Internacionalización
+
+- **Idiomas**: Español e inglés con cambio instantáneo
+- **Persistencia**: El idioma seleccionado se guarda entre sesiones
+
+## 📦 Instalación
 
 ```bash
+# Clonar el repositorio
+git clone https://github.com/usuario/mdmap.git
+cd mdmap
+
+# Instalar dependencias
 npm install
-```
 
-## Desarrollo
-
-```bash
+# Iniciar servidor de desarrollo
 npm run dev
-```
 
-La aplicación se abre en `http://localhost:5173`.
-
-## Compilación para producción
-
-```bash
-# Build estándar (genera dist/)
+# Compilar para producción
 npm run build
-
-# Script completo: build + copia a release/ + genera ZIP
-node scripts/compilar-aplicacion.mjs
 ```
 
-El script genera `release/MDMap_v0.1.0.zip` con el servidor standalone incluido.
+## 🎯 Uso Rápido
 
-## Ejecutar versión compilada
+1. **Crear mapa**: Escribe o abre un documento Markdown
+2. **Añadir nodos**: `Tab` (hijo), `Shift+Tab` (hermano), o usa la toolbar
+3. **Editar**: Doble clic en cualquier nodo
+4. **Cambiar layout**: Usa los botones de layout en la toolbar
+5. **Plegar ramas**: Click en el chevron al lado de nodos con hijos
+6. **Filtrar**: Usa el panel de filtros para buscar por texto o etiquetas
+7. **Guardar**: `Ctrl+S` o usa el botón de guardar
 
-```bash
-# Con el servidor standalone (sin dependencias)
-cd release/MDMap
-node server.mjs
+## 📝 Sintaxis Markdown
 
-# O con Vite preview
-npm run preview
-
-# O simplemente abrir dist/index.html en el navegador
-```
-
-## Scripts multiplataforma
-
-| Sistema | Archivo |
-|---------|---------|
-| Windows | `scripts/compilar-aplicacion.bat` |
-| macOS | `scripts/compilar-aplicacion.command` |
-| Linux | `scripts/compilar-aplicacion.sh` |
-
-## Uso rápido
-
-1. Abre la aplicación.
-2. Haz doble clic en un nodo para editarlo.
-3. Escribe el texto y pulsa `Ctrl + Enter` / `Cmd + Enter` para aceptar.
-4. Añade nodos con los botones de la barra superior o desde el nodo seleccionado.
-5. Guarda el mapa como Markdown con el botón **Guardar**.
-6. Usa `Ctrl+C`/`Ctrl+V` para copiar y pegar nodos.
-7. `Shift+Click` para selección múltiple.
-
-## Características
-
-- **Título y cuerpo separados**: el título se muestra siempre en negrita; el cuerpo se edita con doble clic y se muestra/oculta en el lienzo con la casilla **Cuerpo** de la barra superior.
-- **Internacionalización**: interfaz en Español e Inglés con selector en la barra superior. El idioma se persiste y por defecto sigue el del navegador.
-- **Nodos desarrollados**: marca `[x]`/`[ ]` en el editor. El padre se marca automáticamente si todos sus hijos lo están.
-- **Búsqueda**: filtra nodos por texto o etiqueta desde la barra superior.
-- **Minimapa**: auto-ocultable en la esquina inferior izquierda.
-- **Formato Markdown**: los mapas se guardan como listas indentadas (`-`), con soporte para etiquetas (`#tag`) y líneas de continuación (`|`).
-
-## Estructura principal
-
-```text
-src/
-  App.tsx                         Estado principal y acciones del mapa
-  components/
-    FileBar.tsx                   Barra de apertura, guardado, búsqueda y cuerpo
-    ui/                           Componentes de UI base
-    mindmap/                      Lienzo, nodos, bordes y toolbar
-  hooks/                          Atajos de teclado y autoguardado
-  lib/
-    compiler/                     Conversión de nodos a Markdown
-    fileSystem/                   Apertura y guardado de archivos
-    parser/                       Conversión de Markdown a nodos
-  stores/                         Contexto de mapa mental
-```
-
-## Archivos clave
-
-| Archivo | Propósito |
-|---------|-----------|
-| `server.mjs` | Servidor HTTP standalone (sin dependencias) |
-| `scripts/compilar-aplicacion.mjs` | Script de build + release |
-| `docs/changelog.md` | Historial de versiones |
-| `docs/manual_usuario.md` | Manual de usuario |
-| `docs/manual_administrador.md` | Manual de administrador |
-
-## Formato Markdown
+### Estructura Básica
 
 ```markdown
-- [ ] Idea central #central
-  | Cuerpo opcional de la idea central
-  - [x] Rama completada #hecho
-    | Detalle del cuerpo
-  - [ ] Rama pendiente #importante
+- Idea central
+  - Rama 1
+    - Sub-rama 1.1
+  - Rama 2
 ```
 
-## Changelog
+### Cuerpo del Nodo
 
-Ver [docs/changelog.md](docs/changelog.md).
+```markdown
+- Título del nodo
+  | Primera línea del cuerpo
+  | Segunda línea del cuerpo
+```
+
+### Estado Desarrollado
+
+```markdown
+- [ ] Tarea pendiente
+- [x] Tarea completada
+```
+
+### Etiquetas
+
+```markdown
+- Idea importante #central #urgente
+```
+
+### Frontmatter YAML (ignorado)
+
+```markdown
+---
+title: Mi Mapa
+tags: personal
+---
+
+- Contenido del mapa
+```
+
+## 🎨 Modos de Layout
+
+### Horizontal (Predeterminado)
+
+La raíz está a la izquierda, los hijos crecen hacia la derecha. El crecimiento principal es vertical, lo que lo hace ideal para mapas grandes.
+
+```
+[Raíz] ─── [Hijo 1] ─── [Nieto 1.1]
+       │              └── [Nieto 1.2]
+       └── [Hijo 2] ─── [Nieto 2.1]
+                      └── [Nieto 2.2]
+```
+
+### Vertical
+
+La raíz está arriba, los hijos crecen hacia abajo. Más compacto que el diseño tradicional.
+
+```
+        [Raíz]
+       /       \
+  [Hijo 1]   [Hijo 2]
+   /   \          \
+[N 1.1] [N 1.2]   [N 2.1]
+```
+
+### Radial
+
+La raíz está en el centro, los hijos se distribuyen en radios concéntricos. Ideal para mapas equilibrados.
+
+```
+      [Nieto 1.1]
+        /
+   [Hijo 1]
+       \
+        [Nieto 1.2]
+
+[Raíz]
+
+   [Hijo 2] ─── [Nieto 2.1]
+```
+
+## ⌨️ Atajos de Teclado
+
+| Atajo | Acción |
+|-------|--------|
+| `Tab` | Añadir hijo al nodo seleccionado |
+| `Shift+Tab` | Añadir hermano al nodo seleccionado |
+| `Ctrl+S` / `Cmd+S` | Guardar |
+| `Ctrl+C` / `Cmd+C` | Copiar nodos seleccionados |
+| `Ctrl+V` / `Cmd+V` | Pegar nodos |
+| `Delete` | Borrar nodos seleccionados |
+| `Shift+Click` | Selección múltiple |
+| `Escape` | Cancelar edición |
+
+## 🧪 Tests
+
+```bash
+# Ejecutar tests
+npm test
+
+# Tests con coverage
+npm run test:coverage
+
+# Tests en modo watch
+npm run test:watch
+```
+
+## 📄 Licencia
+
+MIT - Ver archivo LICENSE para más detalles.
+
+## 🤝 Contribución
+
+Las contribuciones son bienvenidas. Por favor:
+
+1. Fork el repositorio
+2. Crea una rama para tu feature (`git checkout -b feature/nueva-funcionalidad`)
+3. Commit tus cambios (`git commit -m 'Añadir nueva funcionalidad'`)
+4. Push a la rama (`git push origin feature/nueva-funcionalidad`)
+5. Abre un Pull Request
+
+## 🗺️ Roadmap
+
+- [ ] SVG export
+- [ ] Undo/redo completo
+- [ ] Drag and drop estructural
+- [ ] Edición colaborativa
+- [ ] Layout automático con librerías externas
+- [ ] Sincronización remota
+
+## 📞 Soporte
+
+Para preguntas, sugerencias o reporte de bugs, por favor abre un issue en GitHub.

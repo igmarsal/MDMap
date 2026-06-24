@@ -1,11 +1,11 @@
-import { useMemo, useState, useCallback, useRef } from 'react'
-import { type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type OnSelectionChangeParams } from 'reactflow'
+import { useMemo, useState, useCallback, useRef, useEffect } from 'react'
+import { type Node, type Edge, type OnNodesChange, type OnEdgesChange, type OnConnect, type OnSelectionChangeParams, useReactFlow, type NodeDragHandler } from 'reactflow'
 import ReactFlow, { Background, Controls, MiniMap } from 'reactflow'
 import 'reactflow/dist/style.css'
 
 import MindMapNode from './NodeComponent'
 import MindMapEdge from './EdgeComponent'
-import type { MindMapNodeData } from '@/lib/types'
+import type { MindMapNodeData } from '../../lib/types'
 
 const nodeTypes = { mindMap: MindMapNode }
 const edgeTypes = { mindMap: MindMapEdge }
@@ -16,10 +16,13 @@ interface MindMapCanvasProps {
   editingNodeId: string | null
   searchQuery: string
   showBody: boolean
+  fitViewRequested: boolean
+  onFitViewHandled: () => void
   onSelectionChange: (params: OnSelectionChangeParams) => void
   onNodesChange: OnNodesChange
   onEdgesChange: OnEdgesChange
   onConnect: OnConnect
+  onNodeDragStop?: NodeDragHandler
 }
 
 export default function MindMapCanvas({
@@ -28,13 +31,30 @@ export default function MindMapCanvas({
   editingNodeId,
   searchQuery,
   showBody,
+  fitViewRequested,
+  onFitViewHandled,
   onSelectionChange,
   onNodesChange,
   onEdgesChange,
   onConnect,
+  onNodeDragStop,
 }: MindMapCanvasProps) {
+  const reactFlowInstance = useReactFlow()
   const [overlayVisible, setOverlayVisible] = useState(false)
   const overlayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // fitView controlado - sin minZoom restrictivo para permitir ver mapas grandes
+  useEffect(() => {
+    if (fitViewRequested && reactFlowInstance) {
+      setTimeout(() => {
+        reactFlowInstance.fitView({
+          padding: 0.3,
+          duration: 300,
+        })
+        onFitViewHandled()
+      }, 50)
+    }
+  }, [fitViewRequested, nodes.length, reactFlowInstance, onFitViewHandled])
 
   const handleOverlayEnter = useCallback(() => {
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
@@ -79,15 +99,16 @@ export default function MindMapCanvas({
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         defaultEdgeOptions={{ type: 'mindMap' }}
+        minZoom={0.01}
+        maxZoom={4}
         selectionKeyCode="Shift"
         multiSelectionKeyCode="Shift"
         className="bg-background"
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={() => {}}
         onSelectionChange={onSelectionChange}
+        onNodeDragStop={onNodeDragStop}
       >
         <Background color="#71717a" gap={20} />
         <div

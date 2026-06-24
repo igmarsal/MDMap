@@ -1,4 +1,5 @@
-import type { ParsedNode, MindMapNode } from '../types'
+import type { ParsedNode, MindMapNode, LayoutMode } from '../types'
+import { calculateLayout as calculateLayoutInternal } from '../layout'
 
 function generateId(): string {
   return Math.random().toString(36).slice(2, 9)
@@ -29,8 +30,47 @@ function parseTags(text: string): { text: string; tags: string[] } {
   return { text: cleaned.replace(/\s+/g, ' ').trim(), tags }
 }
 
-export function mdToNodes(md: string): MindMapNode[] {
-  const lines = md.split('\n').filter((l) => l.trim().length > 0)
+export function mdToNodes(md: string, layoutMode: LayoutMode = 'horizontal'): MindMapNode[] {
+  // Pre-filter: remove frontmatter YAML and code blocks
+  const filteredLines: string[] = []
+  const lines = md.split('\n')
+  let inFrontmatter = false
+  let inCodeBlock = false
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmed = line.trim()
+
+    // Detect frontmatter start (--- at the very beginning)
+    if (i === 0 && trimmed === '---') {
+      inFrontmatter = true
+      continue
+    }
+
+    // Detect frontmatter end
+    if (inFrontmatter) {
+      if (trimmed === '---') {
+        inFrontmatter = false
+      }
+      continue
+    }
+
+    // Detect code block start/end (triple backticks)
+    if (trimmed.startsWith('```')) {
+      inCodeBlock = !inCodeBlock
+      continue
+    }
+
+    // Skip code block content
+    if (inCodeBlock) {
+      continue
+    }
+
+    // Skip empty lines
+    if (trimmed.length > 0) {
+      filteredLines.push(line)
+    }
+  }
 
   const parsed: ParsedNode[] = []
   const parentStack: { level: number; id: string | null }[] = [
@@ -38,7 +78,7 @@ export function mdToNodes(md: string): MindMapNode[] {
   ]
   const lastNodeByLevel = new Map<number, ParsedNode>()
 
-  for (const line of lines) {
+  for (const line of filteredLines) {
     const { level, text, continuation } = parseIndentation(line)
 
     if (continuation) {
@@ -67,7 +107,7 @@ export function mdToNodes(md: string): MindMapNode[] {
     lastNodeByLevel.set(level, node)
   }
 
-  const positions = calculateLayout(parsed)
+  const positions = calculateLayoutInternal(parsed, layoutMode)
   return parsed.map((p) => ({
     id: p.id,
     text: p.text,
@@ -78,55 +118,4 @@ export function mdToNodes(md: string): MindMapNode[] {
     tags: p.tags,
     developed: p.developed,
   }))
-}
-
-function calculateLayout(nodes: ParsedNode[]): Record<string, { x: number; y: number }> {
-  const positions: Record<string, { x: number; y: number }> = {}
-  const verticalGap = 100
-  const leafWidth = 200
-  const horizontalGap = 60
-
-  const childrenOf = new Map<string | null, ParsedNode[]>()
-  for (const node of nodes) {
-    const key = node.parent ?? '__roots__'
-    if (!childrenOf.has(key)) childrenOf.set(key, [])
-    childrenOf.get(key)!.push(node)
-  }
-
-  function getSubtreeWidth(nodeId: string): number {
-    const children = childrenOf.get(nodeId) || []
-    if (children.length === 0) return leafWidth
-    const total = children.reduce((sum, c) => sum + getSubtreeWidth(c.id), 0)
-    return total + (children.length - 1) * horizontalGap
-  }
-
-  function placeNode(node: ParsedNode, centerX: number, depth: number) {
-    positions[node.id] = { x: centerX, y: depth * verticalGap }
-
-    const children = childrenOf.get(node.id) || []
-    if (children.length === 0) return
-
-    const widths = children.map((c) => getSubtreeWidth(c.id))
-    const totalWidth = widths.reduce((a, b) => a + b, 0) + (widths.length - 1) * horizontalGap
-    let startX = centerX - totalWidth / 2
-
-    for (let i = 0; i < children.length; i++) {
-      const childCenter = startX + widths[i] / 2
-      placeNode(children[i], childCenter, depth + 1)
-      startX += widths[i] + horizontalGap
-    }
-  }
-
-  const roots = childrenOf.get('__roots__') || []
-  const rootWidths = roots.map((r) => getSubtreeWidth(r.id))
-  const totalRootWidth = rootWidths.reduce((a, b) => a + b, 0) + (roots.length - 1) * horizontalGap
-  let rootStartX = -totalRootWidth / 2
-
-  for (let i = 0; i < roots.length; i++) {
-    const rootCenter = rootStartX + rootWidths[i] / 2
-    placeNode(roots[i], rootCenter, 0)
-    rootStartX += rootWidths[i] + horizontalGap
-  }
-
-  return positions
 }

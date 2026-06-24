@@ -12,11 +12,15 @@
     "@reactflow/node-resizer": "^2.2.14",
     "@tailwindcss/vite": "^4.3.1",
     "adm-zip": "^0.5.17",
+    "html-to-image": "^1.11.13",
+    "lucide-react": "^1.21.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reactflow": "^11.11.4"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^26.0.0",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
@@ -25,6 +29,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.4",
     "typescript": "~5.8.3",
-    "vite": "^6.3.3"
+    "vite": "^6.3.3",
+    "vitest": "^4.1.9"
   }
 }

@@ -1,17 +1,13 @@
 import { Button } from './ui/Button'
-import { useI18n } from '@/lib/i18n'
+import { useI18n } from '../lib/i18n'
 
 interface FileBarProps {
   fileName: string | null
-  searchQuery: string
-  showBody: boolean
-  onSearchChange: (query: string) => void
-  onToggleShowBody: (value: boolean) => void
   onOpenFile: () => void
   onSave: () => void
 }
 
-export default function FileBar({ fileName, searchQuery, showBody, onSearchChange, onToggleShowBody, onOpenFile, onSave }: FileBarProps) {
+export default function FileBar({ fileName, onOpenFile, onSave }: FileBarProps) {
   const { t, lang, setLang } = useI18n()
   const fileOpen = !!fileName
 
@@ -26,22 +22,6 @@ export default function FileBar({ fileName, searchQuery, showBody, onSearchChang
             </>
           ) : t('noFileOpen')}
         </span>
-        <input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => onSearchChange(e.target.value)}
-          placeholder={t('searchPlaceholder')}
-          className="ml-4 bg-background border border-border rounded px-2 py-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary w-48"
-        />
-        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer select-none whitespace-nowrap ml-2">
-          <input
-            type="checkbox"
-            checked={showBody}
-            onChange={(e) => onToggleShowBody(e.target.checked)}
-            className="accent-primary"
-          />
-          {t('body')}
-        </label>
       </div>
       <div className="flex items-center gap-2 shrink-0">
         <div className="flex items-center gap-0.5 border border-border rounded-md overflow-hidden text-xs">

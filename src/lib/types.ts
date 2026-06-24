@@ -30,4 +30,106 @@ export interface MindMapNodeData {
   editing?: boolean
   dimmed?: boolean
   showBody?: boolean
+  hasChildren?: boolean
+  isCollapsed?: boolean
+  descendantsCount?: number
+  layoutMode?: LayoutMode
 }
+
+/**
+ * Modos de disposición del mapa mental
+ */
+export type LayoutMode = 'horizontal' | 'vertical' | 'radial'
+
+/**
+ * Modos de ancho de nodo
+ */
+export type NodeWidthMode = 'compact' | 'normal' | 'wide'
+
+/**
+ * Constantes de modos de layout
+ */
+export const LAYOUT_MODES: LayoutMode[] = ['horizontal', 'vertical', 'radial']
+
+/**
+ * Configuración de ancho de nodo
+ */
+export const NODE_WIDTH_CONFIG = {
+  compact: 200,
+  normal: 240,
+  wide: 320,
+} as const
+
+/**
+ * Constantes de layout horizontal
+ */
+export const HORIZONTAL_LAYOUT = {
+  levelGap: 280,
+  rowGap: 90,
+  rootGap: 140,
+} as const
+
+/**
+ * Constantes de layout vertical
+ */
+export const VERTICAL_LAYOUT = {
+  verticalGap: 110,
+  leafWidth: 160,
+  horizontalGap: 40,
+  rootGap: 180,
+} as const
+
+/**
+ * Constantes de layout radial
+ */
+export const RADIAL_LAYOUT = {
+  levelRadius: 220,
+  radiusIncrement: 180,
+  minSiblingAngle: 30,
+} as const
+
+/**
+ * Razón de cambio para historial
+ */
+export type HistoryReason =
+  | 'add-node'
+  | 'delete-node'
+  | 'edit-node'
+  | 'move-node'
+  | 'change-layout'
+  | 'collapse-node'
+  | 'expand-node'
+  | 'toggle-developed'
+  | 'filter-developed'
+  | 'paste-node'
+  | 'reorganize'
+  | 'markdown-import'
+
+/**
+ * Snapshot del historial
+ */
+export interface HistorySnapshot {
+  nodes: import('reactflow').Node<MindMapNodeData>[]
+  edges: import('reactflow').Edge[]
+  markdown: string
+  layoutMode: LayoutMode
+  collapsedNodeIds: string[]
+  showDevelopedBranches: boolean
+  manualPositions: Record<string, { x: number; y: number }>
+  timestamp: number
+  reason: HistoryReason
+}
+
+/**
+ * Filtros del mapa
+ */
+export interface MapFilters {
+  searchText: string
+  tags: string[]
+  levels: number[]
+}
+
+/**
+ * Clave especial para raíces en mapas de hijos
+ */
+export const ROOT_KEY = '__roots__'

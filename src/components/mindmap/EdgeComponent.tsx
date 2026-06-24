@@ -1,5 +1,6 @@
 import { memo } from 'react'
-import { type EdgeProps, getBezierPath } from 'reactflow'
+import { type EdgeProps, getBezierPath, getSmoothStepPath } from 'reactflow'
+import type { LayoutMode } from '../../lib/types'
 
 export default memo(function MindMapEdge({
   id,
@@ -7,13 +8,26 @@ export default memo(function MindMapEdge({
   sourceY,
   targetX,
   targetY,
+  data,
 }: EdgeProps) {
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-  })
+  const layoutMode: LayoutMode = data?.layoutMode || 'horizontal'
+  
+  const useSmoothStep = layoutMode === 'horizontal' || layoutMode === 'vertical'
+  
+  const [edgePath] = useSmoothStep
+    ? getSmoothStepPath({
+        sourceX,
+        sourceY,
+        targetX,
+        targetY,
+        borderRadius: 8,
+      })
+    : getBezierPath({
+        sourceX,
+        sourceY,
+        targetX,
+        targetY,
+      })
 
   return (
     <path
