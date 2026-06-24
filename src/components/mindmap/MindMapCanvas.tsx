@@ -104,6 +104,7 @@ export default function MindMapCanvas({
         maxZoom={4}
         selectionKeyCode="Shift"
         multiSelectionKeyCode="Shift"
+        deleteKeyCode="Delete"
         className="bg-background"
         onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={() => {}}
