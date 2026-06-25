@@ -61,12 +61,17 @@ function generateStandalone(distDir) {
       faviconDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(readFileSync(faviconPath, 'utf-8'))}`
     }
 
+    // Eliminar export {...}; del final del JS (no válido fuera de módulos)
+    const jsClean = js.replace(/export\s*\{[^}]+\};?\s*$/, '')
+
     let result = html
       .replace(/<link rel="stylesheet"[^>]*>/, () => `<style>${css}</style>`)
-      .replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/, () => `<script type="module">${js}</script>`)
+      .replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/, () => `<script>${jsClean}</script>`)
       .replace(/crossorigin\s*=\s*"[^"]*"/g, '')
       .replace(/<link[^>]*rel="icon"[^>]*>/, () =>
         faviconDataUri ? `<link rel="icon" href="${faviconDataUri}" />` : '')
+      // Eliminar type="module" si existe (no funciona con file://)
+      .replace(/\s*type="module"/g, '')
 
     const out = path.join(distDir, 'standalone.html')
     writeFileSync(out, result, 'utf-8')
