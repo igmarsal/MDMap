@@ -21,6 +21,7 @@ export interface ParsedNode {
   parent: string | null
   tags: string[]
   developed: DevState
+  showBody?: boolean
 }
 
 /**
@@ -69,6 +70,14 @@ export type NodeWidthMode = 'compact' | 'normal' | 'wide'
  * Constantes de modos de layout
  */
 export const LAYOUT_MODES: LayoutMode[] = ['horizontal', 'vertical', 'radial']
+
+/**
+ * Dimensiones estimadas de un nodo para layout dinámico
+ */
+export interface NodeDimensions {
+  width: number
+  height: number
+}
 
 /**
  * Configuración de ancho de nodo

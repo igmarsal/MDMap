@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.5.1 (2026-06-25)
+
+### Nuevo
+
+- **Espaciado dinámico entre nodos**: el layout ahora estima la altura/ancho real de cada nodo según su contenido (título, etiquetas, cuerpo visible). Los nodos con cuerpo habilitado o muchas etiquetas ya no se solapan — el espaciado se ajusta automáticamente.
+- **Estado de raíz automático**: el estado de desarrollo de los nodos raíz (nivel 0) se calcula automáticamente a partir de sus descendientes. La raíz solo se marca como completada si **todos** sus hijos lo están. El toggle de estado se oculta en el editor de nodos raíz.
+
+### Técnico
+
+- Nueva función `estimateNodeDimensions()` en `layoutUtils.ts` para cálculo de dimensiones basado en contenido.
+- Nueva función `recomputeDeveloped()` extraída a `src/lib/developedUtils.ts` como utilidad compartida entre hooks y App.
+- `ParsedNode` ahora incluye `showBody?: boolean` para que los algoritmos de layout consideren el cuerpo visible.
+- La carga inicial de datos (`loadParsedMd`) ahora ejecuta `recomputeDeveloped()` para que el estado de raíces se derive de los hijos desde el primer momento.
+
 ## v0.5.0 (2026-06-25)
 
 ### Nuevo

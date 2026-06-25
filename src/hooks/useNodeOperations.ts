@@ -1,6 +1,7 @@
 import { useCallback } from 'react'
 import type { Node, Edge } from 'reactflow'
-import type { MindMapNodeData, DevState } from '../lib/types'
+import type { MindMapNodeData } from '../lib/types'
+import { recomputeDeveloped } from '../lib/developedUtils'
 
 interface UseNodeOperationsProps {
   nodesRef: React.MutableRefObject<Node<MindMapNodeData>[]>
@@ -13,39 +14,6 @@ interface UseNodeOperationsProps {
   scheduleSave: () => void
   pushHistory: () => void
   t: (key: string, vars?: Record<string, string | number>) => string
-}
-
-function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node<MindMapNodeData>[] {
-  const childrenOf = new Map<string, string[]>()
-  edges.forEach((e) => {
-    const list = childrenOf.get(e.source) || []
-    list.push(e.target)
-    childrenOf.set(e.source, list)
-  })
-
-  // Evaluar estado agregado de un nodo mirando recursivamente a sus descendientes
-  function computeState(id: string): DevState {
-    const children = childrenOf.get(id) || []
-    if (children.length === 0) {
-      const n = nodes.find((nd) => nd.id === id)
-      return n ? n.data.developed : 'todo'
-    }
-    const childStates = children.map((c) => computeState(c))
-    if (childStates.every((s) => s === 'done')) return 'done'
-    if (childStates.some((s) => s === 'in-progress')) return 'in-progress'
-    const n = nodes.find((nd) => nd.id === id)
-    return n ? n.data.developed : 'todo'
-  }
-
-  return nodes.map((n) => {
-    const children = childrenOf.get(n.id) || []
-    if (children.length === 0) return n
-    const newState = computeState(n.id)
-    if (newState !== n.data.developed) {
-      return { ...n, data: { ...n.data, developed: newState } }
-    }
-    return n
-  })
 }
 
 export function useNodeOperations({

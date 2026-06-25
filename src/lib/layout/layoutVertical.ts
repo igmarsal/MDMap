@@ -1,10 +1,12 @@
 import type { ParsedNode } from '../types'
 import { ROOT_KEY, VERTICAL_LAYOUT } from '../types'
-import { buildChildrenMap } from './layoutUtils'
+import { buildChildrenMap, estimateNodeDimensions } from './layoutUtils'
 
 /**
- * Calcula layout vertical mejorado (más compacto que el actual)
- * La raíz está arriba, los hijos crecen hacia abajo
+ * Calcula layout vertical con espaciado dinámico.
+ * La raíz está arriba, los hijos crecen hacia abajo.
+ * El ancho de cada subárbol se calcula según el tamaño estimado de los nodos,
+ * evitando solapamientos cuando los nodos tienen contenido variable.
  */
 export function calculateLayoutVertical(
   nodes: ParsedNode[]
@@ -14,9 +16,16 @@ export function calculateLayoutVertical(
   const { verticalGap, leafWidth, horizontalGap } = VERTICAL_LAYOUT
   const childrenOf = buildChildrenMap(nodes)
 
+  // Pre-calcular anchos estimados de cada nodo hoja
+  const widths = new Map<string, number>()
+  for (const node of nodes) {
+    const dims = estimateNodeDimensions(node)
+    widths.set(node.id, Math.max(dims.width, leafWidth))
+  }
+
   function getSubtreeWidth(nodeId: string): number {
     const children = childrenOf.get(nodeId) || []
-    if (children.length === 0) return leafWidth
+    if (children.length === 0) return widths.get(nodeId) ?? leafWidth
     const total = children.reduce((sum, c) => sum + getSubtreeWidth(c.id), 0)
     return total + (children.length - 1) * horizontalGap
   }

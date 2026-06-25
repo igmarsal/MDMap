@@ -78,6 +78,20 @@ function generateStandalone(distDir) {
       // Eliminar crossorigin
       .replace(/crossorigin\s*=\s*"[^"]*"/g, '')
 
+    // Mover el script inline al <body> después de <div id="root">.
+    // El atributo defer no funciona en scripts inline (solo en scripts con src),
+    // así que movemos físicamente el tag.
+    const scriptStart = result.indexOf('<script>')
+    const scriptEnd = result.indexOf('</script>') + '</script>'.length
+    if (scriptStart !== -1 && scriptEnd > scriptStart) {
+      const scriptTag = result.slice(scriptStart, scriptEnd)
+      result = result.slice(0, scriptStart) + result.slice(scriptEnd)
+      const bodyEnd = result.indexOf('</body>')
+      if (bodyEnd !== -1) {
+        result = result.slice(0, bodyEnd) + '\n    ' + scriptTag + '\n  ' + result.slice(bodyEnd)
+      }
+    }
+
     const out = path.join(distDir, 'standalone.html')
     writeFileSync(out, result, 'utf-8')
     rmSync(standaloneDir, { recursive: true, force: true })

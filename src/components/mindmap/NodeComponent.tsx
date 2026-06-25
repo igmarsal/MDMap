@@ -221,20 +221,24 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
             className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
             placeholder={t('nodeTagsPlaceholder')}
           />
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault()
-                setDraftDeveloped(prev => prev === 'todo' ? 'in-progress' : prev === 'in-progress' ? 'done' : 'todo')
-              }}
-              className="text-base leading-none hover:opacity-80 transition-opacity"
-              title={t('developed')}
-            >
-              {draftDeveloped === 'done' ? '✅' : draftDeveloped === 'in-progress' ? '🟡' : '⬜'}
-            </button>
-            <span>{t(draftDeveloped === 'done' ? 'developedLabel' : draftDeveloped === 'in-progress' ? 'inProgressLabel' : 'todoLabel')}</span>
-          </label>
+          {/* El estado de desarrollo de la raíz (level 0) se calcula automáticamente
+              a partir de sus descendientes, no es editable directamente */}
+          {data.level !== 0 && (
+            <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault()
+                  setDraftDeveloped(prev => prev === 'todo' ? 'in-progress' : prev === 'in-progress' ? 'done' : 'todo')
+                }}
+                className="text-base leading-none hover:opacity-80 transition-opacity"
+                title={t('developed')}
+              >
+                {draftDeveloped === 'done' ? '✅' : draftDeveloped === 'in-progress' ? '🟡' : '⬜'}
+              </button>
+              <span>{t(draftDeveloped === 'done' ? 'developedLabel' : draftDeveloped === 'in-progress' ? 'inProgressLabel' : 'todoLabel')}</span>
+            </label>
+          )}
           <div className="flex justify-end gap-2">
             <button
               type="button"

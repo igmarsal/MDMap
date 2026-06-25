@@ -7,7 +7,12 @@ import type { LayoutMode } from '../lib/types'
  */
 export function useLayoutMode() {
   const getInitialLayoutMode = (): LayoutMode => {
-    const saved = localStorage.getItem('mdmap_layout') as LayoutMode | null
+    let saved: LayoutMode | null = null
+    try {
+      saved = localStorage.getItem('mdmap_layout') as LayoutMode | null
+    } catch {
+      // localStorage no disponible (ej. file:// en Chrome)
+    }
 
     if (saved === 'horizontal' || saved === 'vertical' || saved === 'radial') {
       return saved
@@ -21,7 +26,7 @@ export function useLayoutMode() {
   const changeLayoutMode = useCallback((mode: LayoutMode) => {
     if (mode === layoutMode) return mode
 
-    localStorage.setItem('mdmap_layout', mode)
+    try { localStorage.setItem('mdmap_layout', mode) } catch { /* file:// no soporta localStorage */ }
     setLayoutMode(mode)
     return mode
   }, [layoutMode])

@@ -9,6 +9,7 @@ import { NodeCallbacksProvider } from './components/mindmap/NodeCallbacksContext
 import { useFileSystem } from './lib/fileSystem/useFileSystem'
 import { mdToNodes } from './lib/parser/mdToNodes'
 import { nodesToMd } from './lib/compiler/nodesToMd'
+import { recomputeDeveloped } from './lib/developedUtils'
 import type { MindMapNode, MindMapNodeData, LayoutMode } from './lib/types'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useAutoSave } from './hooks/useAutoSave'
@@ -309,17 +310,27 @@ function AppContent() {
       }
     }
     setManualPositions(cleanManualPositions)
-    
-    setNodes(parsed.map((n) => ({
-      id: n.id, type: 'mindMap',
+
+    const initialNodes = parsed.map((n) => ({
+      id: n.id, type: 'mindMap' as const,
       position: cleanManualPositions[n.id] || n.position,
       data: { text: n.text, level: n.level, tags: n.tags, developed: n.developed },
-    })))
-    setEdges(parsed.flatMap((n) =>
+    }))
+    const initialEdges = parsed.flatMap((n) =>
       n.children.map((childId) => ({
-        id: `${n.id}-${childId}`, source: n.id, target: childId, type: 'mindMap',
+        id: `${n.id}-${childId}`, source: n.id, target: childId, type: 'mindMap' as const,
       })),
-    ))
+    )
+
+    setNodes(initialNodes)
+    setEdges(initialEdges)
+
+    // Recalcular estado de desarrollo de las raíces: su estado depende
+    // del estado de sus descendientes, no del valor en el markdown.
+    setTimeout(() => {
+      setNodes((prev) => recomputeDeveloped(prev, initialEdges))
+    }, 0)
+
     setSelectedNodeIds(new Set())
     setEditingNodeId(null)
     setFitViewRequested(true)

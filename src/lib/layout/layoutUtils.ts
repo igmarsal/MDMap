@@ -1,5 +1,6 @@
-import type { ParsedNode } from '../types'
-import { ROOT_KEY } from '../types'
+import type { ParsedNode, NodeDimensions } from '../types'
+export type { NodeDimensions }
+import { ROOT_KEY, NODE_WIDTH_CONFIG } from '../types'
 
 /**
  * Construye un mapa de hijos por padre para facilitar el cálculo de layout
@@ -67,7 +68,53 @@ export function toParsedNodes(
     parent: parentByChild.get(node.id) ?? null,
     tags: node.data.tags ?? [],
     developed: (node.data.developed || 'todo') as import('../types').DevState,
+    showBody: node.data.showBody === true,
   }))
+}
+
+/**
+ * Estima las dimensiones de un nodo en función de su contenido.
+ * Se usa en los algoritmos de layout para espaciar los nodos dinámicamente
+ * según su tamaño real, evitando solapamientos.
+ */
+const NODE_WIDTH = NODE_WIDTH_CONFIG.normal // 240
+const CONTENT_WIDTH = NODE_WIDTH - 30        // 210 (padding horizontal)
+const TITLE_LINE_HEIGHT = 20
+const TAG_LINE_HEIGHT = 16
+const BODY_LINE_HEIGHT = 16
+const PADDING_TOP = 12
+const PADDING_BOTTOM = 8
+const GAP = 4
+
+export function estimateNodeDimensions(node: { text: string; tags: string[]; showBody?: boolean }): NodeDimensions {
+  const lines = node.text.split('\n')
+  const title = lines[0] || ''
+
+  // Líneas del título (word-wrap a CONTENT_WIDTH)
+  const titleCharsPerLine = Math.floor(CONTENT_WIDTH / 7.5)
+  const titleLines = Math.max(1, Math.ceil(title.length / titleCharsPerLine))
+
+  let height = PADDING_TOP + titleLines * TITLE_LINE_HEIGHT + PADDING_BOTTOM
+
+  // Tags (si existen)
+  if (node.tags && node.tags.length > 0) {
+    height += GAP + TAG_LINE_HEIGHT
+  }
+
+  // Cuerpo (solo si showBody está activo)
+  if (node.showBody && lines.length > 1) {
+    const bodyText = lines.slice(1).join('\n').trim()
+    if (bodyText) {
+      const bodyCharsPerLine = Math.floor(CONTENT_WIDTH / 6.5)
+      const bodyLines = Math.max(1, Math.ceil(bodyText.length / bodyCharsPerLine))
+      height += GAP + bodyLines * BODY_LINE_HEIGHT
+    }
+  }
+
+  // Badge de estado de desarrollo
+  height += GAP + 14
+
+  return { width: NODE_WIDTH, height }
 }
 
 /**
