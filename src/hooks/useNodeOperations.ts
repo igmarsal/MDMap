@@ -153,6 +153,7 @@ export function useNodeOperations({
       })
     }
     if (toDelete.size > 1) {
+      // eslint-disable-next-line no-alert
       if (!confirm(t('deleteConfirm', { count: toDelete.size }))) return
     }
     setNodes((nds) => {

@@ -609,7 +609,7 @@ function AppContent() {
               const first = Array.from(selectedNodeIds)[0]
               if (first) handleAddChild(first)
             }}
-            onDelete={() => handleDeleteNodes(Array.from(selectedNodeIds))}
+            onDelete={() => handleDeleteNodes(Array.from(selectedIdsRef.current))}
             onCopy={handleCopy}
             onPaste={handlePaste}
             onLayoutChange={handleLayoutChange}
