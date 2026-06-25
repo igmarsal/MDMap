@@ -19,7 +19,7 @@ interface TreeNode {
   children: TreeNode[]
   isCollapsed: boolean
   descendantsCount: number
-  developed: boolean
+  developed: 'todo' | 'in-progress' | 'done'
 }
 
 export default function OutlinePanel({
@@ -52,7 +52,7 @@ export default function OutlinePanel({
         children: [],
         isCollapsed: collapsedNodeIds.has(node.id),
         descendantsCount,
-        developed: node.data.developed || false,
+        developed: node.data.developed || 'todo',
       })
     }
 
@@ -148,8 +148,11 @@ export default function OutlinePanel({
           )}
 
           {/* Developed indicator */}
-          {node.developed && (
+          {node.developed === 'done' && (
             <span className="text-xs">✅</span>
+          )}
+          {node.developed === 'in-progress' && (
+            <span className="text-xs">🟡</span>
           )}
 
           {/* Node title */}

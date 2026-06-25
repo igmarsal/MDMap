@@ -44,8 +44,8 @@ export function getDevelopedBranchNodeIds(nodes: Node<MindMapNodeData>[], edges:
     const node = nodes.find((n) => n.id === nodeId)
     if (!node) return false
 
-    // Si el nodo está marcado como desarrollado
-    if (node.data.developed) {
+    // Si el nodo está marcado como completado
+    if (node.data.developed === 'done') {
       return true
     }
 

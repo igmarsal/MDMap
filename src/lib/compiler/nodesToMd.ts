@@ -6,9 +6,11 @@ function formatNodeText(node: MindMapNode): string[] {
   // round-trip (abrir .md -> guardar -> abrir) sea idempotente: un nodo sin
   // título vuelve a compilar como nodo sin título.
   const firstLine = parts[0]?.trimEnd() ?? ''
-  const developedMark = node.developed ? '[x] ' : '[ ] '
+  const devMark = node.developed === 'done' ? '[x]'
+                : node.developed === 'in-progress' ? '[~]'
+                : '[ ]'
   const tagStr = node.tags.length > 0 ? ' ' + node.tags.map((t) => `#${t}`).join(' ') : ''
-  const title = `${developedMark}${firstLine}${tagStr}`.trimEnd()
+  const title = `${devMark} ${firstLine}${tagStr}`.trimEnd()
   return [title, ...parts.slice(1).map((line) => `| ${line.trimEnd()}`)]
 }
 

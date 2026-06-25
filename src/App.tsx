@@ -52,7 +52,7 @@ function nodesToMindMap(nodes: Node<MindMapNodeData>[], edges: Edge[]): MindMapN
     children: childrenByParent.get(node.id) || [],
     position: node.position,
     tags: node.data.tags || [],
-    developed: !!node.data.developed,
+    developed: (node.data.developed || 'todo') as import('./lib/types').DevState,
   }))
 }
 
@@ -511,7 +511,7 @@ function AppContent() {
   const visibleNodes = useMemo(() => 
     nodes.filter((node) => {
       if (hiddenNodeIds.has(node.id)) return false
-      if (!showDevelopedBranches && node.data.developed) return false
+      if (!showDevelopedBranches && node.data.developed === 'done') return false
       // Ocultar si no coincide con filtros de tags/levels
       if (filters.tags.length > 0) {
         const nodeTags = node.data.tags || []

@@ -66,7 +66,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   const [draftTitle, setDraftTitle] = useState(title)
   const [draftBody, setDraftBody] = useState(body)
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
-  const [draftDeveloped, setDraftDeveloped] = useState(!!data.developed)
+  const [draftDeveloped, setDraftDeveloped] = useState<'todo' | 'in-progress' | 'done'>(data.developed || 'todo')
   const isDimmed = data.dimmed === true
   const hasChildren = data.hasChildren ?? false
   const isCollapsed = data.isCollapsed ?? false
@@ -78,7 +78,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       setDraftTitle(p[0] || '')
       setDraftBody(p.slice(1).join('\n'))
       setDraftTags((data.tags || []).join(', '))
-      setDraftDeveloped(!!data.developed)
+      setDraftDeveloped(data.developed || 'todo')
       setTimeout(() => titleRef.current?.focus(), 50)
     }
   }, [data.editing, data.text, data.tags, data.developed])
@@ -141,7 +141,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   }, [callbacks, id])
 
   const tagColor = getTagColor(data.tags || [])
-  const borderColor = tagColor || (data.developed ? '#10b981' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
+  const borderColor = tagColor || (data.developed === 'done' ? '#10b981' : data.developed === 'in-progress' ? '#f59e0b' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
 
   const NODE_WIDTH = NODE_WIDTH_CONFIG.normal
   const CONTENT_WIDTH = NODE_WIDTH - 30 // padding and borders
@@ -221,14 +221,19 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
             className="w-full bg-background border border-border rounded p-1 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
             placeholder={t('nodeTagsPlaceholder')}
           />
-          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={draftDeveloped}
-              onChange={(e) => setDraftDeveloped(e.target.checked)}
-              className="accent-primary"
-            />
-            {t('developed')}
+          <label className="flex items-center gap-2 text-xs text-muted-foreground cursor-pointer select-none">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.preventDefault()
+                setDraftDeveloped(prev => prev === 'todo' ? 'in-progress' : prev === 'in-progress' ? 'done' : 'todo')
+              }}
+              className="text-base leading-none hover:opacity-80 transition-opacity"
+              title={t('developed')}
+            >
+              {draftDeveloped === 'done' ? '✅' : draftDeveloped === 'in-progress' ? '🟡' : '⬜'}
+            </button>
+            <span>{t(draftDeveloped === 'done' ? 'developedLabel' : draftDeveloped === 'in-progress' ? 'inProgressLabel' : 'todoLabel')}</span>
           </label>
           <div className="flex justify-end gap-2">
             <button
@@ -250,7 +255,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       ) : (
         <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-start gap-1.5">
-            <span className="text-sm shrink-0 mt-0.5">{data.developed ? '✅' : '⬜'}</span>
+            <span className="text-sm shrink-0 mt-0.5">{data.developed === 'done' ? '✅' : data.developed === 'in-progress' ? '🟡' : '⬜'}</span>
             <div className="text-left break-words whitespace-pre-line font-semibold max-w-[210px]">{title}</div>
           </div>
           {data.showBody && body.trim().length > 0 && (
@@ -273,8 +278,13 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
             </div>
           )}
           {/* Developed label */}
-          {data.developed && !data.editing && (
-            <div className="text-[9px] text-muted-foreground text-center mt-1">
+          {data.developed === 'in-progress' && !data.editing && (
+            <div className="text-[9px] text-amber-500 text-center mt-1 font-medium">
+              {t('inProgressLabel')}
+            </div>
+          )}
+          {data.developed === 'done' && !data.editing && (
+            <div className="text-[9px] text-emerald-500 text-center mt-1 font-medium">
               {t('developedLabel')}
             </div>
           )}

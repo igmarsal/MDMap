@@ -23,22 +23,21 @@ function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node
     childrenOf.set(e.source, list)
   })
 
-  const developedById = (id: string): boolean =>
-    !!nodes.find((n) => n.id === id)?.data.developed
-
-  function allDescendantsDeveloped(id: string): boolean {
+  function allChildrenDone(id: string): boolean {
     const children = childrenOf.get(id) || []
-    if (children.length === 0) {
-      return developedById(id)
-    }
-    return children.every((c) => developedById(c) && allDescendantsDeveloped(c))
+    if (children.length === 0) return true
+    return children.every((c) => {
+      const n = nodes.find((nd) => nd.id === c)
+      return n && n.data.developed === 'done' && allChildrenDone(c)
+    })
   }
 
   return nodes.map((n) => {
     const children = childrenOf.get(n.id) || []
     if (children.length === 0) return n
-    const developed = children.every((c) => allDescendantsDeveloped(c))
-    return { ...n, data: { ...n.data, developed } }
+    const done = children.every((c) => allChildrenDone(c))
+    if (done) return { ...n, data: { ...n.data, developed: 'done' as const } }
+    return n
   })
 }
 

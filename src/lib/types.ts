@@ -1,3 +1,31 @@
+/**
+ * Estado de desarrollo de un nodo: pendiente, en curso o completado
+ */
+export type DevState = 'todo' | 'in-progress' | 'done'
+
+/** @deprecated Usar DevState. Mantenido para compatibilidad con parsers viejos */
+export function parseDevState(val: unknown): DevState {
+  if (val === 'todo' || val === 'in-progress' || val === 'done') return val
+  if (val === true) return 'done'
+  if (val === false) return 'todo'
+  return 'todo'
+}
+
+/**
+ * Nodo intermedio (antes de asignar layout).
+ */
+export interface ParsedNode {
+  id: string
+  text: string
+  level: number
+  parent: string | null
+  tags: string[]
+  developed: DevState
+}
+
+/**
+ * Nodo final con asignación de posición y lista de hijos.
+ */
 export interface MindMapNode {
   id: string
   text: string
@@ -6,16 +34,7 @@ export interface MindMapNode {
   children: string[]
   position: { x: number; y: number }
   tags: string[]
-  developed: boolean
-}
-
-export interface ParsedNode {
-  id: string
-  text: string
-  level: number
-  parent: string | null
-  tags: string[]
-  developed: boolean
+  developed: DevState
 }
 
 /**
@@ -26,7 +45,7 @@ export interface MindMapNodeData {
   text: string
   level: number
   tags: string[]
-  developed: boolean
+  developed: DevState
   editing?: boolean
   dimmed?: boolean
   showBody?: boolean

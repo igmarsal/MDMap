@@ -90,8 +90,11 @@ export function mdToNodes(md: string, layoutMode: LayoutMode = 'horizontal'): Mi
     }
 
     const { text: cleanText, tags } = parseTags(text)
-    const developedMatch = cleanText.match(/^\[([ x])\]\s*/)
-    const developed = developedMatch ? developedMatch[1] === 'x' : false
+    const developedMatch = cleanText.match(/^\[([ x~])\]\s*/)
+    const rawDev = developedMatch ? developedMatch[1] : null
+    const developed = rawDev === 'x' ? 'done' as const
+                     : rawDev === '~' ? 'in-progress' as const
+                     : 'todo' as const
     const finalText = developedMatch ? cleanText.slice(developedMatch[0].length) : cleanText
     const id = generateId()
     let parent: string | null = null

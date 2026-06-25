@@ -1,19 +1,31 @@
 # Changelog
 
-## v0.4.1 (2026-06-24)
+## v0.5.0 (2026-06-25)
 
 ### Nuevo
 
+- **Estado tri-estado en nodos**: además de Pendiente (⬜) y Completado (✅), los nodos ahora admiten **En curso** (🟡). Se edita con un botón cíclico en el editor que alterna entre los tres estados.
+- **Sintaxis Markdown `[~]`**: el estado "En curso" se serializa como `[~]` y se parsea correctamente.
+- **Autocompletado de padres**: cuando todos los hijos de un nodo están completados, el padre se marca automáticamente como Completado.
 - **Colores únicos para etiquetas**: cada etiqueta obtiene un color HSL generado por hash de su nombre, sin necesidad de registro previo.
 
 ### Cambiado
 
-- **"Desarrollado" → "Completado"**: todas las etiquetas de interfaz (checkbox en editor de nodos, botón de toolbar, panel de filtros) ahora usan "Completado"/"Completed" en lugar de "Desarrollado"/"Developed".
+- **"Desarrollado" → "Completado"**: el checkbox del editor ahora es un botón cíclico (⬜ → 🟡 → ✅ → ⬜) con etiquetas "Pendiente", "En curso" y "Completada".
+- **Indicador visual en canvas**: nodo pendiente muestra ⬜, en curso muestra 🟡 con borde ámbar, completado muestra ✅ con borde verde y etiqueta "Completada".
+- **Panel de índice**: muestra ✅ o 🟡 según el estado del nodo.
+- **Filtro de completadas**: oculta solo los nodos con estado 'done' (no afecta a 'in-progress').
 
 ### Corregido
 
 - **Backspace ya no borra nodos**: ReactFlow sobrescribe `deleteKeyCode` para que solo la tecla `Delete` (Supr) elimine nodos. `Backspace` sigue funcionando normalmente dentro de campos de texto.
 - **Textarea del cuerpo auto-redimensionable**: crece automáticamente al escribir sin necesidad de scroll manual.
+
+### Técnico
+
+- Nuevo tipo `DevState = 'todo' | 'in-progress' | 'done'` en `types.ts`.
+- Función `parseDevState()` para compatibilidad con datos booleanos antiguos.
+- `recomputeDeveloped` actualizado en hooks `useNodeOperations` y `useClipboard` para el nuevo tri-estado.
 
 ## v0.4.0 (2026-06-24)
 

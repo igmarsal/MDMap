@@ -57,6 +57,8 @@ const translations: Record<Lang, Record<string, string>> = {
     showDeveloped: 'Mostrar completadas',
     hideDeveloped: 'Ocultar completadas',
     developedLabel: 'Completada',
+    inProgressLabel: 'En curso',
+    todoLabel: 'Pendiente',
 
     // Export
     exportPng: 'Exportar PNG',
@@ -138,6 +140,8 @@ const translations: Record<Lang, Record<string, string>> = {
     showDeveloped: 'Show completed',
     hideDeveloped: 'Hide completed',
     developedLabel: 'Completed',
+    inProgressLabel: 'In progress',
+    todoLabel: 'Pending',
 
     // Export
     exportPng: 'Export PNG',

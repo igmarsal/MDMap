@@ -66,7 +66,7 @@ export function toParsedNodes(
     level: node.data.level,
     parent: parentByChild.get(node.id) ?? null,
     tags: node.data.tags ?? [],
-    developed: node.data.developed ?? false,
+    developed: (node.data.developed || 'todo') as import('../types').DevState,
   }))
 }
 

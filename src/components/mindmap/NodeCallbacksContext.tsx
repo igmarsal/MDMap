@@ -1,9 +1,10 @@
 import { createContext, useContext } from 'react'
+import type { DevState } from '../../lib/types'
 
 export interface NodeCallbacks {
   onAddChild: (id: string) => void
   onDelete: (id: string) => void
-  onEdit: (id: string, text: string, tags: string[], developed?: boolean) => void
+  onEdit: (id: string, text: string, tags: string[], developed?: DevState) => void
   onStartEdit: (id: string) => void
   onStopEdit: (id: string) => void
   onSelect: (id: string) => void
