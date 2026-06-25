@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react'
 import type { Node, Edge } from 'reactflow'
-import type { MindMapNodeData } from '../lib/types'
+import type { MindMapNodeData, DevState } from '../lib/types'
 
 interface UseClipboardProps {
   nodesRef: React.MutableRefObject<Node<MindMapNodeData>[]>
@@ -23,20 +23,31 @@ function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node
     childrenOf.set(e.source, list)
   })
 
-  function allChildrenDone(id: string): boolean {
+  function computeState(id: string): DevState {
     const children = childrenOf.get(id) || []
-    if (children.length === 0) return true
-    return children.every((c) => {
-      const n = nodes.find((nd) => nd.id === c)
-      return n && n.data.developed === 'done' && allChildrenDone(c)
-    })
+    if (children.length === 0) {
+      const n = nodes.find((nd) => nd.id === id)
+      return n ? n.data.developed : 'todo'
+    }
+    let hasInProgress = false
+    for (const c of children) {
+      const state = computeState(c)
+      if (state === 'in-progress') hasInProgress = true
+    }
+    const allDone = children.every((c) => computeState(c) === 'done')
+    if (allDone) return 'done'
+    if (hasInProgress) return 'in-progress'
+    const n = nodes.find((nd) => nd.id === id)
+    return n ? n.data.developed : 'todo'
   }
 
   return nodes.map((n) => {
     const children = childrenOf.get(n.id) || []
     if (children.length === 0) return n
-    const done = children.every((c) => allChildrenDone(c))
-    if (done) return { ...n, data: { ...n.data, developed: 'done' as const } }
+    const newState = computeState(n.id)
+    if (newState !== n.data.developed) {
+      return { ...n, data: { ...n.data, developed: newState } }
+    }
     return n
   })
 }

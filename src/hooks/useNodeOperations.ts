@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import type { Node, Edge } from 'reactflow'
-import type { MindMapNodeData } from '../lib/types'
+import type { MindMapNodeData, DevState } from '../lib/types'
 
 interface UseNodeOperationsProps {
   nodesRef: React.MutableRefObject<Node<MindMapNodeData>[]>
@@ -23,20 +23,37 @@ function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node
     childrenOf.set(e.source, list)
   })
 
-  function allChildrenDone(id: string): boolean {
+  // Evaluar estado agregado de un nodo mirando recursivamente a sus descendientes
+  function computeState(id: string): DevState {
     const children = childrenOf.get(id) || []
-    if (children.length === 0) return true
-    return children.every((c) => {
-      const n = nodes.find((nd) => nd.id === c)
-      return n && n.data.developed === 'done' && allChildrenDone(c)
-    })
+    if (children.length === 0) {
+      const n = nodes.find((nd) => nd.id === id)
+      return n ? n.data.developed : 'todo'
+    }
+    let hasInProgress = false
+    for (const c of children) {
+      const state = computeState(c)
+      if (state === 'in-progress') hasInProgress = true
+      if (state !== 'done') {
+        // Si algún hijo no está 'done', el padre no puede ser 'done'
+        // Pero seguimos evaluando por si hay 'in-progress'
+      }
+    }
+    const allDone = children.every((c) => computeState(c) === 'done')
+    if (allDone) return 'done'
+    if (hasInProgress) return 'in-progress'
+    // Si hay hijos 'todo' o mixtos, el padre refleja su propio estado
+    const n = nodes.find((nd) => nd.id === id)
+    return n ? n.data.developed : 'todo'
   }
 
   return nodes.map((n) => {
     const children = childrenOf.get(n.id) || []
     if (children.length === 0) return n
-    const done = children.every((c) => allChildrenDone(c))
-    if (done) return { ...n, data: { ...n.data, developed: 'done' as const } }
+    const newState = computeState(n.id)
+    if (newState !== n.data.developed) {
+      return { ...n, data: { ...n.data, developed: newState } }
+    }
     return n
   })
 }
