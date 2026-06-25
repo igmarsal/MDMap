@@ -12,6 +12,8 @@ interface OutlinePanelProps {
   onCenterNode: (nodeId: string) => void
 }
 
+import type { DevState } from '../../lib/types'
+
 interface TreeNode {
   id: string
   text: string
@@ -19,7 +21,7 @@ interface TreeNode {
   children: TreeNode[]
   isCollapsed: boolean
   descendantsCount: number
-  developed: 'todo' | 'in-progress' | 'done'
+  developed: DevState
 }
 
 export default function OutlinePanel({
@@ -153,6 +155,9 @@ export default function OutlinePanel({
           )}
           {node.developed === 'in-progress' && (
             <span className="text-xs">🟡</span>
+          )}
+          {node.developed === 'blocked' && (
+            <span className="text-xs">🚫</span>
           )}
 
           {/* Node title */}

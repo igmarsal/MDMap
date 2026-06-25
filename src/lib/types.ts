@@ -1,11 +1,11 @@
 /**
  * Estado de desarrollo de un nodo: pendiente, en curso o completado
  */
-export type DevState = 'todo' | 'in-progress' | 'done'
+export type DevState = 'todo' | 'in-progress' | 'done' | 'blocked'
 
 /** @deprecated Usar DevState. Mantenido para compatibilidad con parsers viejos */
 export function parseDevState(val: unknown): DevState {
-  if (val === 'todo' || val === 'in-progress' || val === 'done') return val
+  if (val === 'todo' || val === 'in-progress' || val === 'done' || val === 'blocked') return val
   if (val === true) return 'done'
   if (val === false) return 'todo'
   return 'todo'

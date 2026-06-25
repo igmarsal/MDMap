@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
 import type { Node, Edge } from 'reactflow'
-import type { MindMapNodeData } from '../lib/types'
+import type { MindMapNodeData, DevState, LayoutMode } from '../lib/types'
 import { recomputeDeveloped } from '../lib/developedUtils'
+import { toParsedNodes, applyLayout } from '../lib/layout'
 
 interface UseNodeOperationsProps {
   nodesRef: React.MutableRefObject<Node<MindMapNodeData>[]>
@@ -14,6 +15,7 @@ interface UseNodeOperationsProps {
   scheduleSave: () => void
   pushHistory: () => void
   t: (key: string, vars?: Record<string, string | number>) => string
+  layoutMode: LayoutMode
 }
 
 export function useNodeOperations({
@@ -27,7 +29,21 @@ export function useNodeOperations({
   scheduleSave,
   pushHistory,
   t,
+  layoutMode,
 }: UseNodeOperationsProps) {
+
+  /** Aplica layout a los nodos actualizados dentro de un setNodes callback */
+  const applyLayoutToNodes = useCallback(
+    (nds: Node<MindMapNodeData>[], eds: Edge[]) => {
+      const parsed = toParsedNodes(nds, eds)
+      const positions = applyLayout(parsed, layoutMode)
+      return nds.map((node) => ({
+        ...node,
+        position: positions[node.id] ?? node.position,
+      }))
+    },
+    [layoutMode],
+  )
 
   const handleAddChild = useCallback((parentId: string) => {
     pushHistory()
@@ -35,31 +51,23 @@ export function useNodeOperations({
     const parentNode = nodesRef.current.find((n) => n.id === parentId)
     if (!parentNode) return
 
-    const siblings = edgesRef.current
-      .filter((e) => e.source === parentId)
-      .map((e) => nodesRef.current.find((n) => n.id === e.target))
-      .filter(Boolean)
-      .length
-
     const level = (parentNode.data.level || 0) + 1
-    const verticalGap = 100
-    const horizontalGap = 60
-    const nodeWidth = 200
-
-    const totalSiblingsWidth = nodeWidth * siblings + horizontalGap * Math.max(0, siblings - 1)
-    const newX = parentNode.position.x - totalSiblingsWidth / 2 + (nodeWidth * siblings) / 2
     const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: newX, y: parentNode.position.y + verticalGap },
+      id, type: 'mindMap' as const, selected: true,
+      position: { x: 0, y: 0 },
       data: { text: t('newNode'), level, tags: [], developed: 'todo' as const },
     }
-    setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
-    setEdges((eds) => [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }])
+    setNodes((nds) => {
+      const withNew = recomputeDeveloped([...nds, newNode], edgesRef.current)
+      const newEdges = [...edgesRef.current, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' as const }]
+      return applyLayoutToNodes(withNew, newEdges)
+    })
+    setEdges((eds) => [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' as const }])
     setSelectedNodeIds(new Set([id]))
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [nodesRef, edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t])
+  }, [nodesRef, edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t, applyLayoutToNodes])
 
   const handleAddSibling = useCallback((sourceId: string) => {
     pushHistory()
@@ -67,44 +75,43 @@ export function useNodeOperations({
     if (!source) return
     const parentId = edgesRef.current.find((e) => e.target === sourceId)?.source ?? null
     const id = Math.random().toString(36).slice(2, 9)
-    const nodeWidth = 200
-    const gap = 40
 
     const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: source.position.x + nodeWidth + gap, y: source.position.y },
+      id, type: 'mindMap' as const, selected: true,
+      position: { x: 0, y: 0 },
       data: { text: t('newNode'), level: source.data.level, tags: [], developed: 'todo' as const },
     }
-    setNodes((nds) => recomputeDeveloped([...nds, newNode], edgesRef.current))
+    setNodes((nds) => {
+      const withNew = recomputeDeveloped([...nds, newNode], edgesRef.current)
+      const newEdges = parentId
+        ? [...edgesRef.current, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' as const }]
+        : edgesRef.current
+      return applyLayoutToNodes(withNew, newEdges)
+    })
     setEdges((eds) => parentId
-      ? [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' }]
+      ? [...eds, { id: `${parentId}-${id}`, source: parentId, target: id, type: 'mindMap' as const }]
       : eds)
     setSelectedNodeIds(new Set([id]))
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [nodesRef, edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t])
+  }, [nodesRef, edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t, applyLayoutToNodes])
 
   const handleAddRoot = useCallback(() => {
     pushHistory()
     const id = Math.random().toString(36).slice(2, 9)
-    const roots = nodesRef.current.filter((n) => n.data.level === 0)
-    const nodeWidth = 200
-    const horizontalGap = 60
-    const totalWidth = nodeWidth * roots.length + horizontalGap * roots.length
-    const startX = -totalWidth / 2 + nodeWidth / 2
 
     const newNode: Node<MindMapNodeData> = {
-      id, type: 'mindMap', selected: true,
-      position: { x: startX, y: 0 },
+      id, type: 'mindMap' as const, selected: true,
+      position: { x: 0, y: 0 },
       data: { text: t('newRoot'), level: 0, tags: [], developed: 'todo' as const },
     }
-    setNodes((nds) => [...nds, newNode])
+    setNodes((nds) => applyLayoutToNodes([...nds, newNode], edgesRef.current))
     setSelectedNodeIds(new Set([id]))
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [nodesRef, setNodes, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t])
+  }, [nodesRef, setNodes, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t, applyLayoutToNodes, edgesRef])
 
   const handleDeleteNodes = useCallback((ids: string[]) => {
     pushHistory()
@@ -124,9 +131,11 @@ export function useNodeOperations({
       // eslint-disable-next-line no-alert
       if (!confirm(t('deleteConfirm', { count: toDelete.size }))) return
     }
+    const remainingEdges = edgesRef.current.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target))
     setNodes((nds) => {
       const filtered = nds.filter((n) => !toDelete.has(n.id))
-      return recomputeDeveloped(filtered, edgesRef.current.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target)))
+      const devUpdated = recomputeDeveloped(filtered, remainingEdges)
+      return applyLayoutToNodes(devUpdated, remainingEdges)
     })
     setEdges((eds) => eds.filter((e) => !toDelete.has(e.source) && !toDelete.has(e.target)))
     setSelectedNodeIds((prev) => {
@@ -139,25 +148,26 @@ export function useNodeOperations({
     setEditingNodeId((prev) => prev && toDelete.has(prev) ? null : prev)
     markDirty()
     scheduleSave()
-  }, [edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t])
+  }, [edgesRef, setNodes, setEdges, setSelectedNodeIds, setEditingNodeId, markDirty, scheduleSave, pushHistory, t, applyLayoutToNodes])
 
   const handleDeleteNode = useCallback((id: string) => {
     handleDeleteNodes([id])
   }, [handleDeleteNodes])
 
-  const handleEditNode = useCallback((id: string, text: string, tags: string[], developed?: 'todo' | 'in-progress' | 'done') => {
+  const handleEditNode = useCallback((id: string, text: string, tags: string[], developed?: DevState) => {
     pushHistory()
     setNodes((nds) => {
       const updated = nds.map((n) => (n.id === id ? {
         ...n,
         data: { ...n.data, text, tags, developed: developed ?? n.data.developed ?? 'todo', editing: false },
       } : n))
-      return recomputeDeveloped(updated, edgesRef.current)
+      const devUpdated = recomputeDeveloped(updated, edgesRef.current)
+      return applyLayoutToNodes(devUpdated, edgesRef.current)
     })
     setEditingNodeId(null)
     markDirty()
     scheduleSave()
-  }, [edgesRef, setNodes, setEditingNodeId, markDirty, scheduleSave, pushHistory])
+  }, [edgesRef, setNodes, setEditingNodeId, markDirty, scheduleSave, pushHistory, applyLayoutToNodes])
 
   const handleStartEdit = useCallback((id: string) => {
     setNodes((nds) => nds.map((n) => (n.id === id ? {

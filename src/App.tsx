@@ -275,6 +275,7 @@ function AppContent() {
     scheduleSave,
     pushHistory,
     t,
+    layoutMode,
   })
 
   const handleStopEdit = useCallback((id: string) => {
@@ -297,6 +298,7 @@ function AppContent() {
     scheduleSave,
     editingNodeId,
     selectedNodeIds,
+    layoutMode,
   })
 
   const loadParsedMd = useCallback((md: string) => {
@@ -359,7 +361,7 @@ function AppContent() {
     setFitViewRequested(true)
   }, [layoutMode, setLayoutMode, markDirty, scheduleSave])
 
-  const handleReorganize = useCallback(() => {
+  const handleReorganize = useCallback((visualOnly = false) => {
     const parsedNodes = toParsedNodes(nodesRef.current, edgesRef.current)
     const positions = applyLayout(parsedNodes, layoutMode)
 
@@ -370,8 +372,10 @@ function AppContent() {
       }))
     )
 
-    markDirty()
-    scheduleSave()
+    if (!visualOnly) {
+      markDirty()
+      scheduleSave()
+    }
     setFitViewRequested(true)
   }, [layoutMode, markDirty, scheduleSave])
 
@@ -469,6 +473,14 @@ function AppContent() {
       loadParsedMd(t('initialMd'))
     }
   }, [loadParsedMd, nodes.length, t])
+
+  // Reajustar layout cuando se muestra/oculta el cuerpo del nodo
+  useEffect(() => {
+    if (nodes.length > 0) {
+      handleReorganize(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showBody])
 
   useKeyboardShortcuts({
     onSave: handleSave,

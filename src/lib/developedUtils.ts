@@ -7,9 +7,13 @@ import type { MindMapNodeData, DevState } from './types'
  *
  * Reglas:
  * - Hojas: conservan su propio estado.
- * - Padres: 'done' si TODOS sus hijos son 'done';
+ * - Padres: 'blocked' si ALGÚN hijo es 'blocked' (prioridad absoluta);
+ *           'done' si TODOS sus hijos son 'done';
  *           'in-progress' si ALGÚN hijo es 'in-progress';
  *           en caso contrario se deja el valor actual del padre.
+ *
+ * Esto propaga automáticamente el estado 'blocked' hasta la raíz:
+ * si cualquier nodo del árbol está bloqueado, su raíz también lo estará.
  */
 export function recomputeDeveloped(
   nodes: Node<MindMapNodeData>[],
@@ -29,6 +33,8 @@ export function recomputeDeveloped(
       return n ? n.data.developed : 'todo'
     }
     const childStates = children.map((c) => computeState(c))
+    // blocked tiene prioridad absoluta
+    if (childStates.some((s) => s === 'blocked')) return 'blocked'
     if (childStates.every((s) => s === 'done')) return 'done'
     if (childStates.some((s) => s === 'in-progress')) return 'in-progress'
     const n = nodes.find((nd) => nd.id === id)

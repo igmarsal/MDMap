@@ -58,6 +58,7 @@ const translations: Record<Lang, Record<string, string>> = {
     hideDeveloped: 'Ocultar completadas',
     developedLabel: 'Completada',
     inProgressLabel: 'En curso',
+    blockedLabel: 'Bloqueada',
     todoLabel: 'Pendiente',
 
     // Export
@@ -141,6 +142,7 @@ const translations: Record<Lang, Record<string, string>> = {
     hideDeveloped: 'Hide completed',
     developedLabel: 'Completed',
     inProgressLabel: 'In progress',
+    blockedLabel: 'Blocked',
     todoLabel: 'Pending',
 
     // Export

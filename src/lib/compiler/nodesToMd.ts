@@ -8,6 +8,7 @@ function formatNodeText(node: MindMapNode): string[] {
   const firstLine = parts[0]?.trimEnd() ?? ''
   const devMark = node.developed === 'done' ? '[x]'
                 : node.developed === 'in-progress' ? '[~]'
+                : node.developed === 'blocked' ? '[!]'
                 : '[ ]'
   const tagStr = node.tags.length > 0 ? ' ' + node.tags.map((t) => `#${t}`).join(' ') : ''
   const title = `${devMark} ${firstLine}${tagStr}`.trimEnd()

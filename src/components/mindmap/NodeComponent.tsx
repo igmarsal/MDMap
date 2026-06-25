@@ -4,7 +4,7 @@ import { ChevronRight, ChevronDown } from 'lucide-react'
 import { useNodeCallbacks } from './NodeCallbacksContext'
 import type { MindMapNodeData } from '../../lib/types'
 import { useI18n } from '../../lib/i18n'
-import { NODE_WIDTH_CONFIG } from '../../lib/types'
+import { NODE_WIDTH_CONFIG, type DevState } from '../../lib/types'
 
 const levelColors = ['#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981']
 
@@ -66,7 +66,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   const [draftTitle, setDraftTitle] = useState(title)
   const [draftBody, setDraftBody] = useState(body)
   const [draftTags, setDraftTags] = useState((data.tags || []).join(', '))
-  const [draftDeveloped, setDraftDeveloped] = useState<'todo' | 'in-progress' | 'done'>(data.developed || 'todo')
+  const [draftDeveloped, setDraftDeveloped] = useState<DevState>(data.developed || 'todo')
   const isDimmed = data.dimmed === true
   const hasChildren = data.hasChildren ?? false
   const isCollapsed = data.isCollapsed ?? false
@@ -141,7 +141,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
   }, [callbacks, id])
 
   const tagColor = getTagColor(data.tags || [])
-  const borderColor = tagColor || (data.developed === 'done' ? '#10b981' : data.developed === 'in-progress' ? '#f59e0b' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
+  const borderColor = tagColor || (data.developed === 'blocked' ? '#ef4444' : data.developed === 'done' ? '#10b981' : data.developed === 'in-progress' ? '#f59e0b' : levelColors[Math.min(data.level ?? 0, levelColors.length - 1)])
 
   const NODE_WIDTH = NODE_WIDTH_CONFIG.normal
   const CONTENT_WIDTH = NODE_WIDTH - 30 // padding and borders
@@ -229,14 +229,14 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
                 type="button"
                 onClick={(e) => {
                   e.preventDefault()
-                  setDraftDeveloped(prev => prev === 'todo' ? 'in-progress' : prev === 'in-progress' ? 'done' : 'todo')
+                  setDraftDeveloped(prev => prev === 'todo' ? 'in-progress' : prev === 'in-progress' ? 'done' : prev === 'done' ? 'blocked' : 'todo')
                 }}
                 className="text-base leading-none hover:opacity-80 transition-opacity"
                 title={t('developed')}
               >
-                {draftDeveloped === 'done' ? '✅' : draftDeveloped === 'in-progress' ? '🟡' : '⬜'}
+                {draftDeveloped === 'done' ? '✅' : draftDeveloped === 'in-progress' ? '🟡' : draftDeveloped === 'blocked' ? '🚫' : '⬜'}
               </button>
-              <span>{t(draftDeveloped === 'done' ? 'developedLabel' : draftDeveloped === 'in-progress' ? 'inProgressLabel' : 'todoLabel')}</span>
+              <span>{t(draftDeveloped === 'done' ? 'developedLabel' : draftDeveloped === 'in-progress' ? 'inProgressLabel' : draftDeveloped === 'blocked' ? 'blockedLabel' : 'todoLabel')}</span>
             </label>
           )}
           <div className="flex justify-end gap-2">
@@ -259,7 +259,7 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
       ) : (
         <div className="space-y-1" onClick={(e) => e.stopPropagation()}>
           <div className="flex items-start gap-1.5">
-            <span className="text-sm shrink-0 mt-0.5">{data.developed === 'done' ? '✅' : data.developed === 'in-progress' ? '🟡' : '⬜'}</span>
+            <span className="text-sm shrink-0 mt-0.5">{data.developed === 'done' ? '✅' : data.developed === 'in-progress' ? '🟡' : data.developed === 'blocked' ? '🚫' : '⬜'}</span>
             <div className="text-left break-words whitespace-pre-line font-semibold max-w-[210px]">{title}</div>
           </div>
           {data.showBody && body.trim().length > 0 && (
@@ -290,6 +290,11 @@ export default memo(function MindMapNode({ id, data, selected }: NodeProps<MindM
           {data.developed === 'done' && !data.editing && (
             <div className="text-[9px] text-emerald-500 text-center mt-1 font-medium">
               {t('developedLabel')}
+            </div>
+          )}
+          {data.developed === 'blocked' && !data.editing && (
+            <div className="text-[9px] text-red-500 text-center mt-1 font-medium">
+              {t('blockedLabel')}
             </div>
           )}
         </div>
