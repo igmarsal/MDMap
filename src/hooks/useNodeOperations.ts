@@ -30,19 +30,9 @@ function recomputeDeveloped(nodes: Node<MindMapNodeData>[], edges: Edge[]): Node
       const n = nodes.find((nd) => nd.id === id)
       return n ? n.data.developed : 'todo'
     }
-    let hasInProgress = false
-    for (const c of children) {
-      const state = computeState(c)
-      if (state === 'in-progress') hasInProgress = true
-      if (state !== 'done') {
-        // Si algún hijo no está 'done', el padre no puede ser 'done'
-        // Pero seguimos evaluando por si hay 'in-progress'
-      }
-    }
-    const allDone = children.every((c) => computeState(c) === 'done')
-    if (allDone) return 'done'
-    if (hasInProgress) return 'in-progress'
-    // Si hay hijos 'todo' o mixtos, el padre refleja su propio estado
+    const childStates = children.map((c) => computeState(c))
+    if (childStates.every((s) => s === 'done')) return 'done'
+    if (childStates.some((s) => s === 'in-progress')) return 'in-progress'
     const n = nodes.find((nd) => nd.id === id)
     return n ? n.data.developed : 'todo'
   }
