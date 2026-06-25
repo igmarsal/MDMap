@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { spawn, execSync } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, unlinkSync, rmSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -44,39 +44,45 @@ async function createZip(sourceDir, zipPath) {
 
 function generateStandalone(distDir) {
   try {
-    const assets = readdirSync(path.join(distDir, 'assets'))
-    const jsFile = assets.find(f => f.startsWith('index-') && f.endsWith('.js'))
-    const cssFile = assets.find(f => f.startsWith('index-') && f.endsWith('.css'))
-    if (!jsFile || !cssFile) return null
+    const standaloneDir = path.join(projectRoot, 'dist-standalone')
+    mkdirSync(standaloneDir, { recursive: true })
 
-    const html = readFileSync(path.join(distDir, 'index.html'), 'utf-8')
-    const js = readFileSync(path.join(distDir, 'assets', jsFile), 'utf-8')
-    const css = readFileSync(path.join(distDir, 'assets', cssFile), 'utf-8')
+    // Build con configuración IIFE — genera standalone.js directamente
+    execSync(
+      `npx vite build --config vite.standalone.config.ts --outDir "${standaloneDir}"`,
+      { cwd: projectRoot, stdio: 'inherit', shell: process.platform === 'win32' }
+    )
 
-    // Inlinear el favicon como data-URI para que standalone.html funcione con
-    // file:// sin depender de un favicon.svg externo.
+    // Leer los archivos generados
+    const htmlFile = path.join(standaloneDir, 'index.html')
+    const jsFile = path.join(standaloneDir, 'standalone.js')
+    if (!existsSync(htmlFile) || !existsSync(jsFile)) return null
+
+    const html = readFileSync(htmlFile, 'utf-8')
+    const js = readFileSync(jsFile, 'utf-8')
+
+    // Favicon como data-URI
     let faviconDataUri = ''
-    const faviconPath = path.join(distDir, 'favicon.svg')
+    const faviconPath = path.join(standaloneDir, 'favicon.svg')
     if (existsSync(faviconPath)) {
       faviconDataUri = `data:image/svg+xml;utf8,${encodeURIComponent(readFileSync(faviconPath, 'utf-8'))}`
     }
 
-    // Eliminar export {...}; del final del JS (no válido fuera de módulos)
-    const jsClean = js.replace(/export\s*\{[^}]+\};?\s*$/, '')
-
+    // Inline JS: reemplazar <script src="..."> por <script>contenido</script>
     let result = html
-      .replace(/<link rel="stylesheet"[^>]*>/, () => `<style>${css}</style>`)
-      .replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/, () => `<script>${jsClean}</script>`)
-      .replace(/crossorigin\s*=\s*"[^"]*"/g, '')
       .replace(/<link[^>]*rel="icon"[^>]*>/, () =>
         faviconDataUri ? `<link rel="icon" href="${faviconDataUri}" />` : '')
-      // Eliminar type="module" si existe (no funciona con file://)
+      .replace(/<script[^>]*src=["'][^"']*["'][^>]*><\/script>/, () => `<script>${js}</script>`)
+      // Eliminar type="module" (no funciona con file://)
       .replace(/\s*type="module"/g, '')
+      // Eliminar crossorigin
+      .replace(/crossorigin\s*=\s*"[^"]*"/g, '')
 
     const out = path.join(distDir, 'standalone.html')
     writeFileSync(out, result, 'utf-8')
+    rmSync(standaloneDir, { recursive: true, force: true })
     return out
-  } catch { return null }
+  } catch (e) { console.error('Error generando standalone:', e); return null }
 }
 
 async function main() {
