@@ -345,6 +345,7 @@ function AppContent() {
     pushHistory()
 
     const parsedNodes = toParsedNodes(nodesRef.current, edgesRef.current)
+    parsedNodes.forEach(n => { n.showBody = showBody })
     const positions = applyLayout(parsedNodes, mode)
 
     setNodes((currentNodes) =>
@@ -359,10 +360,13 @@ function AppContent() {
     markDirty()
     scheduleSave()
     setFitViewRequested(true)
-  }, [layoutMode, setLayoutMode, markDirty, scheduleSave])
+  }, [layoutMode, showBody, setLayoutMode, markDirty, scheduleSave])
 
-  const handleReorganize = useCallback((visualOnly = false) => {
+  const handleReorganize = useCallback((visualOnly = false, showBodyOverride?: boolean) => {
+    const bodyShown = showBodyOverride ?? showBody
     const parsedNodes = toParsedNodes(nodesRef.current, edgesRef.current)
+    // Propagar showBody a los nodos para que estimateNodeDimensions lo use
+    parsedNodes.forEach(n => { n.showBody = bodyShown })
     const positions = applyLayout(parsedNodes, layoutMode)
 
     setNodes((currentNodes) =>
@@ -375,9 +379,9 @@ function AppContent() {
     if (!visualOnly) {
       markDirty()
       scheduleSave()
+      setFitViewRequested(true)
     }
-    setFitViewRequested(true)
-  }, [layoutMode, markDirty, scheduleSave])
+  }, [layoutMode, showBody, markDirty, scheduleSave])
 
   // Handlers de paneles
   const handleToggleCollapse = useCallback((nodeId: string) => {
@@ -477,10 +481,21 @@ function AppContent() {
   // Reajustar layout cuando se muestra/oculta el cuerpo del nodo
   useEffect(() => {
     if (nodes.length > 0) {
-      handleReorganize(true)
+      handleReorganize(true, showBody)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showBody])
+
+  // Reajustar layout completo (como el botón «Reorganizar») al cambiar la
+  // visibilidad de ramas desarrolladas o al aplicar/quitar filtros de
+  // tags/levels. Se recalcula el árbol entero con el espaciado que
+  // corresponda según `showBody`.
+  useEffect(() => {
+    if (nodes.length > 0) {
+      handleReorganize(false, showBody)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDevelopedBranches, filters.tags.join(','), filters.levels.join(',')])
 
   useKeyboardShortcuts({
     onSave: handleSave,

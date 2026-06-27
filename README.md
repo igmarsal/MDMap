@@ -1,4 +1,4 @@
-# MDMap v0.4.0 - Mapas Mentales Interactivos
+# MDMap - Mapas Mentales Interactivos
 
 > Herramienta de mapas mentales basada en Markdown con múltiples modos de visualización
 

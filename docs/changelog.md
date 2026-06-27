@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.5.2 (2026-06-27)
+
+### Nuevo
+
+- **Espaciado dinámico mejorado**: los tres modos de layout (horizontal, vertical, radial) ajustan su espaciado según la altura real de cada nodo. Cuando el cuerpo está visible los nodos son más altos y el espacio entre ellos aumenta automáticamente. Con cuerpo oculto los gaps se reducen al mínimo.
+- **Layout vertical con acumulación por profundidad**: ahora calcula la posición Y en función de la altura máxima de los nodos en cada nivel (en lugar de un `depth × gap` fijo). Con cuerpo visible las distancias entre niveles crecen proporcionalmente.
+- **Layout radial escalado por altura**: el radio entre niveles y el ángulo entre hermanos se calculan a partir de la altura del nodo (no del ancho, que es fijo). Cada nodo y sus subnodos forman conjuntos visualmente separados.
+- **Reorganización automática al ocultar ramas**: al ocultar/mostrar ramas completadas o aplicar filtros de tags/levels, el layout se recalcula completamente (como el botón «Reorganizar»), incluyendo ajuste de zoom.
+
+### Técnico
+
+- Los algoritmos de layout (`calculateLayoutHorizontal`, `calculateLayoutVertical`, `calculateLayoutRadial`) ya no reciben ni usan el parámetro `showBody` — el espaciado es siempre compacto; la altura del nodo se obtiene de `node.showBody` en el `ParsedNode` vía `estimateNodeDimensions`.
+- `applyLayout` y `calculateLayout` simplificados sin el parámetro `showBody`.
+- Efecto unificado en `App.tsx` para filtrar/desarrollados: usa `handleReorganize(false, showBody)` idéntico al botón de reorganizar manual.
+- `setFitViewRequested` movido dentro del bloque `!visualOnly` en `handleReorganize` para que solo se ejecute en acciones manuales.
+
 ## v0.5.1 (2026-06-25)
 
 ### Nuevo

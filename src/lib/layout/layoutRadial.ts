@@ -1,36 +1,40 @@
 import type { ParsedNode } from '../types'
-import { ROOT_KEY, RADIAL_LAYOUT } from '../types'
+import { ROOT_KEY } from '../types'
 import { buildChildrenMap, estimateNodeDimensions } from './layoutUtils'
 
 /**
  * Calcula layout radial con espaciado dinámico.
  * La raíz está en el centro, los hijos se distribuyen en radios concéntricos.
  * El radio de cada nivel y el ángulo mínimo entre hermanos se ajustan
- * según el tamaño estimado de los nodos para evitar solapamientos.
+ * según la altura estimada de los nodos para evitar solapamientos.
  *
- * Con nodos más grandes, el radio se incrementa para dar más espacio.
+ * Sigue el mismo criterio que el layout horizontal: la altura del nodo
+ * (que varía con showBody) determina el espacio radial y angular.
+ * Con cuerpo visible los nodos son más altos → más radio y más ángulo.
  */
 export function calculateLayoutRadial(
   nodes: ParsedNode[]
 ): Record<string, { x: number; y: number }> {
   const positions: Record<string, { x: number; y: number }> = {}
 
-  const { radiusIncrement, minSiblingAngle } = RADIAL_LAYOUT
+  // Espaciado generoso para que cada nodo y sus subnodos formen conjuntos
+  // visualmente separados y fáciles de identificar.
+  const radiusIncrement = 200
+  const minSiblingAngle = 28
   const childrenOf = buildChildrenMap(nodes)
 
-  // Pre-calcular dimensiones
+  // Pre-calcular dimensiones y altura máxima
   const dimensions = new Map<string, { width: number; height: number }>()
-  let maxNodeSize = 0
+  let maxNodeHeight = 0
   for (const node of nodes) {
     const dims = estimateNodeDimensions(node)
     dimensions.set(node.id, dims)
-    const nodeSize = Math.max(dims.width, dims.height)
-    if (nodeSize > maxNodeSize) maxNodeSize = nodeSize
+    if (dims.height > maxNodeHeight) maxNodeHeight = dims.height
   }
 
-  // Ajustar radio según el tamaño máximo de nodo
-  // El radio base es radiusIncrement, pero se escala para nodos grandes
-  const dynamicRadius = Math.max(radiusIncrement, maxNodeSize * 0.8)
+  // Ajustar radio según la altura máxima de nodo (no el ancho, que es fijo).
+  // Cuando el cuerpo está visible, la altura crece y el radio aumenta.
+  const dynamicRadius = Math.max(radiusIncrement, maxNodeHeight * 1.8)
 
   const roots = childrenOf.get(ROOT_KEY) || []
   if (roots.length > 5) {
@@ -62,9 +66,10 @@ export function calculateLayoutRadial(
     if (children.length === 0) return
 
     const totalAngle = endAngle - startAngle
-    // Ángulo mínimo entre hermanos escalado por el tamaño del nodo
+    // Ángulo mínimo entre hermanos escalado por la altura del nodo
+    // (la altura varía con showBody; el ancho es fijo 240px y no aporta)
     const dims = dimensions.get(node.id) ?? { width: 240, height: 100 }
-    const nodeSpan = Math.max(dims.width, dims.height) / 100
+    const nodeSpan = dims.height / 60
     const adjustedMinAngle = Math.max(minSiblingAngle * nodeSpan, minSiblingAngle)
     const anglePerChild = Math.max(
       totalAngle / children.length,

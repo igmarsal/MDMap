@@ -7,13 +7,17 @@ import { buildChildrenMap, estimateNodeDimensions } from './layoutUtils'
  * La raíz está a la izquierda, los hijos crecen hacia la derecha.
  * La separación vertical se calcula según la altura estimada de cada nodo
  * para evitar solapamientos cuando los nodos tienen contenido variable.
+ * Los gaps son siempre compactos; la altura del nodo varía si el cuerpo
+ * está visible (estimado mediante `node.showBody` en el ParsedNode).
  */
 export function calculateLayoutHorizontal(
   nodes: ParsedNode[]
 ): Record<string, { x: number; y: number }> {
   const positions: Record<string, { x: number; y: number }> = {}
 
-  const { levelGap, rowGap, rootGap } = HORIZONTAL_LAYOUT
+  const { levelGap } = HORIZONTAL_LAYOUT
+  const rowGap = 12
+  const rootGap = 20
   const childrenOf = buildChildrenMap(nodes)
 
   // Pre-calcular alturas estimadas de cada nodo
