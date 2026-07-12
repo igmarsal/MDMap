@@ -12,32 +12,38 @@ MDMap es una aplicación web moderna para crear, visualizar y gestionar mapas me
   - **Horizontal** (predeterminado): Crece principalmente en vertical, ideal para mapas grandes
   - **Vertical**: Diseño tradicional mejorado y más compacto
   - **Radial**: Disposición circular para mapas equilibrados y exploratorios
+- **Espaciado dinámico**: Los tres modos de layout ajustan automáticamente el espaciado según la altura real de cada nodo (cuerpo visible vs. oculto)
 - **Nodos de ancho fijo**: Ancho máximo controlado (240px) con texto que hace wrap automáticamente
-- **Colapso de ramas**: Plegar/desplegar ramas para reducir ruido visual en mapas grandes
-- **Panel de índice**: Navegación jerárquica como árbol textual con búsqueda
+- **Colapso de ramas**: Plegar/desplegar ramas para reducir ruido visual en mapas grandes, con indicador de descendientes ocultos
+- **Reorganización automática**: Ocultar/mostrar ramas completadas o aplicar filtros recalcula el layout completo
+- **Movimiento manual con persistencia**: Las posiciones de nodos arrastrados se guardan en `localStorage` y se restauran al recargar
+- **Panel de índice**: Navegación jerárquica como árbol textual con búsqueda y selección de nodos
 
 ### Gestión de Contenido
 
 - **Edición directa**: Doble clic en cualquier nodo para editar título, cuerpo, etiquetas y estado
 - **Título y cuerpo separados**: Primera línea como título, resto como cuerpo del nodo
-- **Etiquetas**: Soporte para etiquetas tipo `#importante`, `#central`, etc.
-- **Estado desarrollado**: Marcar ramas como completadas con indicador visual
-- **Auto-ocultación de desarrolladas**: Opción para ocultar ramas completadas
+- **Etiquetas**: Soporte para etiquetas tipo `#importante`, `#central`, etc. Cada etiqueta se muestra con un color único generado automáticamente
+- **Estado tri-estado**: Cada nodo puede estar **Pendiente** (⬜), **En curso** (🟡) o **Completado** (✅). Se alterna con un botón cíclico en el editor
+- **Autocompletado de padres**: Cuando todos los hijos de un nodo están completados, el padre se marca automáticamente como Completado
+- **Estado de raíz automático**: El estado de los nodos raíz se calcula automáticamente a partir de sus descendientes
+- **Auto-ocultación de completadas**: Opción para ocultar ramas completadas (no afecta a nodos "En curso")
 
 ### Operaciones
 
+- **Undo/Redo completo**: Deshacer y rehacer con `Ctrl+Z`/`Ctrl+Y` o botones en la toolbar (historial de 100 entradas)
 - **Navegación por teclado**: Atajos para crear hijos (`Tab`), hermanos (`Shift+Tab`), guardar (`Ctrl+S`)
 - **Copiar y pegar**: `Ctrl+C`/`Ctrl+V` para duplicar nodos y subárboles
 - **Selección múltiple**: `Shift+Click` para seleccionar varios nodos
-- **Borrar**: `Delete` para eliminar nodos y descendientes
-- **Filtros avanzados**: Filtrar por texto, etiquetas y niveles
+- **Borrar**: `Delete` para eliminar nodos y descendientes (`Backspace` no borra nodos, funciona normal en campos de texto)
+- **Filtros avanzados**: Filtrar por texto, etiquetas y niveles. Las opciones de filtro permanecen visibles aunque los nodos estén ocultos
 
 ### Importación/Exportación
 
 - **Markdown como fuente de verdad**: Compatible con documentos Markdown estándar
-- **Sintaxis extendida**: Soporte para `- Título | cuerpo`, `[x]` desarrollado, `#tag`
-- **Exportación PNG**: Exportar vista actual, mapa completo o selección
-- **File System Access API**: Guardar directamente en Chrome/Edge
+- **Sintaxis extendida**: Soporte para `- Título | cuerpo`, `[ ]`/`[~]`/`[x]` (estado tri-estado), `#tag`
+- **Exportación PNG**: Exportar la vista actual con fondo blanco
+- **File System Access API**: Guardar directamente en Chrome/Edge (en otros navegadores se descarga una copia)
 
 ### Internacionalización
 
@@ -90,10 +96,19 @@ npm run build
   | Segunda línea del cuerpo
 ```
 
-### Estado Desarrollado
+### Estado del Nodo
+
+Cada nodo puede tener uno de tres estados:
+
+| Símbolo | Sintaxis | Estado |
+|---------|----------|--------|
+| ⬜ | `[ ]` | Pendiente |
+| 🟡 | `[~]` | En curso |
+| ✅ | `[x]` | Completado |
 
 ```markdown
 - [ ] Tarea pendiente
+- [~] Tarea en progreso
 - [x] Tarea completada
 ```
 
@@ -162,9 +177,11 @@ La raíz está en el centro, los hijos se distribuyen en radios concéntricos. I
 | `Tab` | Añadir hijo al nodo seleccionado |
 | `Shift+Tab` | Añadir hermano al nodo seleccionado |
 | `Ctrl+S` / `Cmd+S` | Guardar |
+| `Ctrl+Z` / `Cmd+Z` | Deshacer |
+| `Ctrl+Y` / `Cmd+Y` | Rehacer |
 | `Ctrl+C` / `Cmd+C` | Copiar nodos seleccionados |
 | `Ctrl+V` / `Cmd+V` | Pegar nodos |
-| `Delete` | Borrar nodos seleccionados |
+| `Delete` | Borrar nodos seleccionados (`Backspace` no borra nodos) |
 | `Shift+Click` | Selección múltiple |
 | `Escape` | Cancelar edición |
 
@@ -198,10 +215,8 @@ Las contribuciones son bienvenidas. Por favor:
 ## 🗺️ Roadmap
 
 - [ ] SVG export
-- [ ] Undo/redo completo
 - [ ] Drag and drop estructural
 - [ ] Edición colaborativa
-- [ ] Layout automático con librerías externas
 - [ ] Sincronización remota
 
 ## 📞 Soporte
