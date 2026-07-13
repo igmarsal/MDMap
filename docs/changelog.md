@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.7.1 (2026-07-13)
+
+### Corregido
+
+- **Centrado al hacer clic en el índice**: ahora centra correctamente la vista en el centro visual del nodo preservando el zoom actual. Usa `setCenter` con el zoom vigente en lugar de `fitBounds` (que forzaba un zoom arbitrario). Toma la posición desde `nodesRef` y las dimensiones medidas desde React Flow con fallback a constantes.
+
+### Técnico
+
+- `centerOnNode` en `App.tsx` reescrita: obtiene la posición del nodo desde `nodesRef.current`, las dimensiones desde `reactFlowInstance.getNode(id)` con fallback `240×100`, calcula el centro visual `(position.x + width/2, position.y + height/2)` y llama a `setCenter` preservando el zoom actual del viewport.
+
+## v0.7.0 (2026-07-13)
+
+### Añadido
+
+- **Título y versión en la barra superior**: la FileBar muestra ahora "MDMap v0.7.0" a la izquierda, antes del nombre del archivo. La versión se lee de la constante `APP_VERSION` sincronizada con el changelog.
+
+### Cambiado
+
+- **Layout híbrido invertido**: los niveles 0-1 ahora crecen hacia abajo (raíz arriba, hijos extendidos horizontalmente) y los niveles 2+ hacia la derecha (hijos apilados verticalmente), al revés que en la versión anterior. Ahora los dos primeros niveles se comportan como el modo horizontal y los niveles profundos como el modo vertical.
+- **Layout radial rediseñado**: ahora usa un esquema radial-híbrido. Los niveles 0-1 se sitúan en un círculo (raíz en el centro, hijos en la circunferencia) y los niveles 2+ crecen hacia la derecha con espaciado generoso (`levelGap: 320`, `siblingGap: 35`). Elimina la acumulación concéntrica que amontonaba los nodos profundos.
+
+### Técnico
+
+- `calculateLayoutHybrid` en `layoutHybrid.ts` reescrita: `getSubtreeWidth` → `getSubtreeHeight`, `getMaxHeightsByDepth` → `getMaxWidthsByDepth`, `placeDownward` → `placeRightward`. La raíz se sitúa arriba centrada, los hijos de nivel 1 se extienden horizontalmente debajo, y cada subárbol de nivel 2+ crece hacia la derecha con hermanos apilados verticalmente.
+- `calculateLayoutRadial` en `layoutRadial.ts` reescrita: ya no usa recursión concéntrica. Para niveles 0-1 distribuye los hijos ponderando el ángulo por el ancho del subárbol rightward de cada uno. Para niveles 2+ usa `placeRightward` con `levelGap: 320` y `siblingGap: 35`. Radio del círculo: `max(280, maxNodeHeight * 3)`.
+- `FileBar.tsx`: añadida constante `APP_VERSION = '0.7.0'` y mostrada junto al nombre `MDMap` en la barra superior.
+
 ## v0.6.0 (2026-07-12)
 
 ### Nuevo

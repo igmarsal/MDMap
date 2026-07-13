@@ -405,17 +405,35 @@ function AppContent() {
     setFitViewRequested(true)
   }, [])
 
+  /** Centra la vista en el centro visual de un nodo preservando el zoom actual */
+  const centerOnNode = useCallback((nodeId: string) => {
+    // Tomamos la posición desde nodesRef (siempre actualizada) y las
+    // dimensiones medidas desde getNode (con fallback a constantes).
+    const node = nodesRef.current.find(n => n.id === nodeId)
+    if (!node) return
+
+    const rfNode = reactFlowInstance.getNode(nodeId)
+    const w = rfNode?.width ?? 240
+    const h = rfNode?.height ?? 100
+
+    // Los algoritmos de layout calculan coordenadas de centro, pero React Flow
+    // usa origen [0,0] (top-left) por defecto. El centro visual del nodo está
+    // en (position.x + width/2, position.y + height/2).
+    const cx = node.position.x + w / 2
+    const cy = node.position.y + h / 2
+
+    const { zoom } = reactFlowInstance.getViewport()
+    reactFlowInstance.setCenter(cx, cy, { duration: 300, zoom })
+  }, [reactFlowInstance])
+
   const handleCenterSelection = useCallback(() => {
     if (selectedNodeIds.size === 1) {
       const nodeId = Array.from(selectedNodeIds)[0]
       if (nodeId) {
-        const node = nodesRef.current.find(n => n.id === nodeId)
-        if (node) {
-          reactFlowInstance.setCenter(node.position.x, node.position.y, { duration: 500, zoom: 1 })
-        }
+        centerOnNode(nodeId)
       }
     }
-  }, [selectedNodeIds, reactFlowInstance])
+  }, [selectedNodeIds, centerOnNode])
 
   const handleToggleOutline = useCallback(() => {
     setOutlineVisible(prev => !prev)
@@ -613,12 +631,7 @@ function AppContent() {
             collapsedNodeIds={collapsedNodeIds}
             onToggleCollapse={handleToggleCollapse}
             onSelectNode={(id) => setSelectedNodeIdsStable(new Set([id]))}
-            onCenterNode={(id) => {
-              const node = nodesRef.current.find(n => n.id === id)
-              if (node) {
-                reactFlowInstance.setCenter(node.position.x, node.position.y, { duration: 500, zoom: 1 })
-              }
-            }}
+            onCenterNode={centerOnNode}
           />
           </div>
         )}

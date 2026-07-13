@@ -1,6 +1,9 @@
 import { Button } from './ui/Button'
 import { useI18n } from '../lib/i18n'
 
+const APP_NAME = 'MDMap'
+const APP_VERSION = '0.7.1' // debe coincidir con la última versión del changelog
+
 interface FileBarProps {
   fileName: string | null
   onOpenFile: () => void
@@ -14,7 +17,12 @@ export default function FileBar({ fileName, onOpenFile, onSave }: FileBarProps) 
   return (
     <header className="flex items-center justify-between border-b border-border px-4 py-2 gap-4">
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        <span className="font-mono text-sm text-muted-foreground whitespace-nowrap">
+        <span className="font-semibold text-sm text-foreground whitespace-nowrap">
+          {APP_NAME}
+          <span className="ml-1 font-mono text-xs text-muted-foreground">v{APP_VERSION}</span>
+        </span>
+        <span className="text-muted-foreground/30 select-none">|</span>
+        <span className="font-mono text-sm text-muted-foreground whitespace-nowrap truncate">
           {fileOpen ? (
             <>
               <span className="text-primary font-semibold mr-1">●</span>

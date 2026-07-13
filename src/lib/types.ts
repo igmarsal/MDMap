@@ -117,13 +117,16 @@ export const RADIAL_LAYOUT = {
 } as const
 
 /**
- * Constantes de layout híbrido (rightward niveles 0-1 + downward niveles 2+)
+ * Constantes de layout híbrido (downward niveles 0-1 + rightward niveles 2+)
+ *
+ * - niveles 0-1: hacia abajo (root arriba, hijos se extienden horizontalmente)
+ * - niveles 2+:   hacia la derecha (hijos apilados verticalmente)
  */
 export const HYBRID_LAYOUT = {
-  rightLevelGap: 280,    // gap X entre niveles 0→1 (tramo rightward)
-  rightSiblingGap: 14,   // gap Y entre hermanos en tramo rightward
-  downLevelGap: 44,      // gap Y entre niveles en tramo downward (2+)
-  downSiblingGap: 12,    // gap X entre hermanos en tramo downward
+  rightLevelGap: 280,    // gap X entre niveles en tramo rightward (2+)
+  rightSiblingGap: 14,   // gap Y entre hermanos en tramo rightward (2+)
+  downLevelGap: 44,      // gap Y entre niveles 0→1 (tramo downward)
+  downSiblingGap: 12,    // gap X entre hermanos en tramo downward (0-1)
   rootGap: 30,           // gap entre subárboles de raíz
 } as const
 

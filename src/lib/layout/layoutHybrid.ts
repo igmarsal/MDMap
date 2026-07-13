@@ -3,14 +3,14 @@ import { ROOT_KEY, HYBRID_LAYOUT } from '../types'
 import { buildChildrenMap, estimateNodeDimensions } from './layoutUtils'
 
 /**
- * Layout híbrido: niveles 0 y 1 hacia la derecha, niveles 2+ hacia abajo.
+ * Layout híbrido (invertido): niveles 0 y 1 hacia abajo, niveles 2+ hacia la derecha.
  *
- * - La raíz (nivel 0) está a la izquierda, sus hijos directos (nivel 1)
- *   crecen hacia la derecha y se apilan verticalmente (igual que el layout
- *   que antiguamente era «horizontal» / ahora «vertical» por disposición).
- * - Cada nodo de nivel 1 actúa como raíz de un subárbol que crece hacia
- *   abajo, con los hijos extendidos horizontalmente (igual que el layout
+ * - La raíz (nivel 0) está arriba, sus hijos directos (nivel 1)
+ *   crecen hacia abajo y se extienden horizontalmente (igual que el layout
  *   que antiguamente era «vertical» / ahora «horizontal» por disposición).
+ * - Cada nodo de nivel 1 actúa como raíz de un subárbol que crece hacia
+ *   la derecha, con los hijos apilados verticalmente (igual que el layout
+ *   que antiguamente era «horizontal» / ahora «vertical» por disposición).
  */
 export function calculateLayoutHybrid(
   nodes: ParsedNode[]
@@ -37,76 +37,76 @@ export function calculateLayoutHybrid(
   }
 
   // ──────────────────────────────────────────────
-  // Ancho de subárbol para el tramo downward (niveles 2+):
-  // se calcula recursivamente sumando el ancho de los hijos
-  // extendidos horizontalmente.
+  // Altura de subárbol para el tramo rightward (niveles 2+):
+  // se calcula recursivamente sumando la altura de los hijos
+  // apilados verticalmente.
   // ──────────────────────────────────────────────
-  function getSubtreeWidth(nodeId: string): number {
+  function getSubtreeHeight(nodeId: string): number {
     const children = childrenOf.get(nodeId) || []
-    if (children.length === 0) return widths.get(nodeId) ?? 240
+    if (children.length === 0) return heights.get(nodeId) ?? 60
 
     let total = 0
     for (let i = 0; i < children.length; i++) {
-      total += getSubtreeWidth(children[i].id)
-      if (i > 0) total += downSiblingGap
+      total += getSubtreeHeight(children[i].id)
+      if (i > 0) total += rightSiblingGap
     }
-    return Math.max(widths.get(nodeId) ?? 240, total)
+    return Math.max(heights.get(nodeId) ?? 60, total)
   }
 
   // ──────────────────────────────────────────────
-  // Altura máxima por profundidad para un subárbol downward
-  // Devuelve un array donde [d] = altura máxima en la profundidad d
-  // (profundidad 0 = el nodo raíz del subárbol downward)
+  // Ancho máximo por profundidad para un subárbol rightward (niveles 2+).
+  // Devuelve un array donde [d] = ancho máximo en la profundidad d
+  // (profundidad 0 = el nodo raíz del subárbol rightward)
   // ──────────────────────────────────────────────
-  function getMaxHeightsByDepth(
+  function getMaxWidthsByDepth(
     nodeId: string,
     depth: number,
     acc: number[]
   ): void {
-    const h = heights.get(nodeId) ?? 60
+    const w = widths.get(nodeId) ?? 240
     if (depth >= acc.length) {
-      acc.push(h)
+      acc.push(w)
     } else {
-      acc[depth] = Math.max(acc[depth], h)
+      acc[depth] = Math.max(acc[depth], w)
     }
 
     for (const child of childrenOf.get(nodeId) || []) {
-      getMaxHeightsByDepth(child.id, depth + 1, acc)
+      getMaxWidthsByDepth(child.id, depth + 1, acc)
     }
   }
 
   // ──────────────────────────────────────────────
-  // Colocar un subárbol en modo downward
-  // (niveles 2+, árbol que crece hacia abajo con hijos
-  //  extendidos horizontalmente)
+  // Colocar un subárbol en modo rightward
+  // (niveles 2+, árbol que crece hacia la derecha con hijos
+  //  apilados verticalmente)
   //
-  // baseY    : Y superior del subárbol (top del nodo nivel 1)
-  // depth    : profundidad relativa (0 = nivel-1, 1 = nivel-2...)
-  // offsets  : Y offsets para cada profundidad relativa
-  // centerX  : X donde centrar este nodo
+  // baseX    : X izquierda del subárbol (left del nodo nivel 1)
+  // depth    : profundidad relativa (0 = nivel-1, 1 = nivel-2…)
+  // offsets  : X offsets para cada profundidad relativa
+  // centerY  : Y donde centrar este nodo
   // ──────────────────────────────────────────────
-  function placeDownward(
+  function placeRightward(
     node: ParsedNode,
-    baseY: number,
+    baseX: number,
     depth: number,
     offsets: number[],
-    centerX: number,
+    centerY: number,
   ): void {
-    positions[node.id] = { x: centerX, y: baseY + offsets[depth] }
+    positions[node.id] = { x: baseX + offsets[depth], y: centerY }
 
     const children = childrenOf.get(node.id) || []
     if (children.length === 0) return
 
-    const childWidths = children.map((c) => getSubtreeWidth(c.id))
-    const totalWidth =
-      childWidths.reduce((a, b) => a + b, 0) +
-      (childWidths.length - 1) * downSiblingGap
-    let startX = centerX - totalWidth / 2
+    const childHeights = children.map((c) => getSubtreeHeight(c.id))
+    const totalHeight =
+      childHeights.reduce((a, b) => a + b, 0) +
+      (childHeights.length - 1) * rightSiblingGap
+    let startY = centerY - totalHeight / 2
 
     for (let i = 0; i < children.length; i++) {
-      const childCenterX = startX + childWidths[i] / 2
-      placeDownward(children[i], baseY, depth + 1, offsets, childCenterX)
-      startX += childWidths[i] + downSiblingGap
+      const childCenterY = startY + childHeights[i] / 2
+      placeRightward(children[i], baseX, depth + 1, offsets, childCenterY)
+      startY += childHeights[i] + rightSiblingGap
     }
   }
 
@@ -119,6 +119,7 @@ export function calculateLayoutHybrid(
   for (const root of roots) {
     const children = childrenOf.get(root.id) || []
     const rootH = heights.get(root.id) ?? 100
+    const rootW = widths.get(root.id) ?? 240
 
     // ── Raíz sin hijos ──
     if (children.length === 0) {
@@ -128,68 +129,87 @@ export function calculateLayoutHybrid(
     }
 
     // ── Raíz con hijos ──
-    // Para cada hijo de nivel 1, calcular su subárbol downward
+    // Para cada hijo de nivel 1, calcular su subárbol rightward
     const childInfos = children.map((child) => {
-      const maxH: number[] = []
-      getMaxHeightsByDepth(child.id, 0, maxH)
+      const maxW: number[] = []
+      getMaxWidthsByDepth(child.id, 0, maxW)
 
-      // Calcular Y offsets para cada profundidad
+      // Calcular X offsets para cada profundidad relativa
       const offsets: number[] = [0]
-      for (let i = 0; i < maxH.length; i++) {
-        offsets.push(offsets[i] + maxH[i] + downLevelGap)
+      for (let i = 0; i < maxW.length; i++) {
+        offsets.push(offsets[i] + maxW[i] + rightLevelGap)
       }
 
       return {
         node: child,
-        totalHeight: offsets[offsets.length - 1],
+        totalWidth: offsets[offsets.length - 1],
         offsets,
+        subtreeH: getSubtreeHeight(child.id),
       }
     })
 
-    // Calcular la altura total que ocupan todos los hijos apilados verticalmente
-    let totalChildrenH = 0
+    // Calcular el ancho total que ocupan todos los hijos de nivel 1
+    // extendidos horizontalmente
+    let totalChildrenW = 0
     for (let i = 0; i < childInfos.length; i++) {
-      totalChildrenH += childInfos[i].totalHeight
-      if (i < childInfos.length - 1) totalChildrenH += rightSiblingGap
+      totalChildrenW += childInfos[i].totalWidth
+      if (i < childInfos.length - 1) totalChildrenW += downSiblingGap
     }
 
-    // Altura total de este subárbol de raíz
-    const totalH = Math.max(rootH, totalChildrenH)
+    // Ancho total de este subárbol de raíz
+    const totalW = Math.max(rootW, totalChildrenW)
 
-    // Centrar la raíz verticalmente entre sus hijos
-    const rootCenterY = currentY + totalH / 2
-    positions[root.id] = { x: 0, y: rootCenterY }
+    // Centrar la raíz horizontalmente y situarla arriba
+    const rootCenterX = totalW / 2
+    // root center Y = currentY + rootH/2 → top of root = currentY
+    positions[root.id] = { x: rootCenterX, y: currentY + rootH / 2 }
 
-    // Colocar hijos (nivel 1) a la derecha, apilados verticalmente
-    let childY = currentY
+    // Calcular la semi-altura máxima de los subárboles rightward
+    let maxSubtreeHalf = 0
     for (const info of childInfos) {
-      // Colocar el nodo de nivel 1
-      positions[info.node.id] = { x: rightLevelGap, y: childY }
+      maxSubtreeHalf = Math.max(maxSubtreeHalf, info.subtreeH / 2)
+    }
 
-      // Colocar el subárbol downward (niveles 2+)
-      const l1Children = childrenOf.get(info.node.id) || []
-      if (l1Children.length > 0) {
-        const childW = l1Children.map((c) => getSubtreeWidth(c.id))
-        const totalW =
-          childW.reduce((a, b) => a + b, 0) +
-          (childW.length - 1) * downSiblingGap
-        let startX = rightLevelGap - totalW / 2
+    // Posición Y de los hijos (nivel 1), centrados verticalmente
+    // de modo que el borde superior del subárbol rightward más alto
+    // quede a downLevelGap por debajo del borde inferior de la raíz
+    const rootBottom = currentY + rootH
+    const level1Y = rootBottom + downLevelGap + maxSubtreeHalf
 
-        for (let i = 0; i < l1Children.length; i++) {
-          const childCenterX = startX + childW[i] / 2
-          placeDownward(
-            l1Children[i],
-            childY,
-            1,              // profundidad relativa 1 = nivel 2 global
-            info.offsets,
+    // Colocar hijos (nivel 1) debajo, extendidos horizontalmente
+    let childX = (totalW - totalChildrenW) / 2
+    for (const info of childInfos) {
+      const childCenterX = childX + info.totalWidth / 2
+      positions[info.node.id] = { x: childCenterX, y: level1Y }
+
+      // Colocar el subárbol rightward (niveles 2+)
+      const grandchildren = childrenOf.get(info.node.id) || []
+      if (grandchildren.length > 0) {
+        const childHeights = grandchildren.map((c) => getSubtreeHeight(c.id))
+        const totalChildH =
+          childHeights.reduce((a, b) => a + b, 0) +
+          (childHeights.length - 1) * rightSiblingGap
+
+        let startY = level1Y - totalChildH / 2
+        for (let i = 0; i < grandchildren.length; i++) {
+          const childCenterY = startY + childHeights[i] / 2
+          placeRightward(
+            grandchildren[i],
             childCenterX,
+            1, // profundidad relativa 1 = nivel 2 global
+            info.offsets,
+            childCenterY,
           )
-          startX += childW[i] + downSiblingGap
+          startY += childHeights[i] + rightSiblingGap
         }
       }
 
-      childY += info.totalHeight + rightSiblingGap
+      childX += info.totalWidth + downSiblingGap
     }
+
+    // Altura total de la sección (desde currentY hasta el punto más bajo)
+    const sectionBottom = level1Y + maxSubtreeHalf
+    const totalH = sectionBottom - currentY
 
     currentY += totalH + rootGap
   }
