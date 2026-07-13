@@ -2,6 +2,7 @@ import type { ParsedNode, LayoutMode } from '../types'
 import { calculateLayoutHorizontal } from './layoutHorizontal'
 import { calculateLayoutVertical } from './layoutVertical'
 import { calculateLayoutRadial } from './layoutRadial'
+import { calculateLayoutHybrid } from './layoutHybrid'
 import { toParsedNodes, getHiddenDescendantIds } from './layoutUtils'
 
 /**
@@ -14,13 +15,16 @@ export function calculateLayout(
 ): Record<string, { x: number; y: number }> {
   switch (mode) {
     case 'horizontal':
-      return calculateLayoutHorizontal(nodes)
+      return calculateLayoutVertical(nodes)
 
     case 'vertical':
-      return calculateLayoutVertical(nodes)
+      return calculateLayoutHorizontal(nodes)
 
     case 'radial':
       return calculateLayoutRadial(nodes)
+
+    case 'hybrid':
+      return calculateLayoutHybrid(nodes)
 
     default:
       return calculateLayoutHorizontal(nodes)

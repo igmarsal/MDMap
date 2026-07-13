@@ -59,7 +59,7 @@ export interface MindMapNodeData {
 /**
  * Modos de disposición del mapa mental
  */
-export type LayoutMode = 'horizontal' | 'vertical' | 'radial'
+export type LayoutMode = 'horizontal' | 'vertical' | 'radial' | 'hybrid'
 
 /**
  * Modos de ancho de nodo
@@ -69,7 +69,7 @@ export type NodeWidthMode = 'compact' | 'normal' | 'wide'
 /**
  * Constantes de modos de layout
  */
-export const LAYOUT_MODES: LayoutMode[] = ['horizontal', 'vertical', 'radial']
+export const LAYOUT_MODES: LayoutMode[] = ['horizontal', 'vertical', 'radial', 'hybrid']
 
 /**
  * Dimensiones estimadas de un nodo para layout dinámico
@@ -114,6 +114,17 @@ export const RADIAL_LAYOUT = {
   levelRadius: 220,
   radiusIncrement: 180,
   minSiblingAngle: 30,
+} as const
+
+/**
+ * Constantes de layout híbrido (rightward niveles 0-1 + downward niveles 2+)
+ */
+export const HYBRID_LAYOUT = {
+  rightLevelGap: 280,    // gap X entre niveles 0→1 (tramo rightward)
+  rightSiblingGap: 14,   // gap Y entre hermanos en tramo rightward
+  downLevelGap: 44,      // gap Y entre niveles en tramo downward (2+)
+  downSiblingGap: 12,    // gap X entre hermanos en tramo downward
+  rootGap: 30,           // gap entre subárboles de raíz
 } as const
 
 /**

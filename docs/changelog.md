@@ -1,5 +1,24 @@
 # Changelog
 
+## v0.6.0 (2026-07-12)
+
+### Nuevo
+
+- **Layout híbrido (vertical+horizontal)**: nuevo modo de disposición que combina layout vertical para los niveles 0 y 1 (raíces y sus hijos directos) con layout horizontal para los niveles 2+. La raíz y sus hijos forman una «columna vertebral» vertical; cada nodo de nivel 1 actúa como raíz de un subárbol horizontal que crece hacia la derecha. Esto permite que los primeros niveles mantengan una estructura vertical compacta mientras las ramas profundas se expanden horizontalmente sin acrecentar la profundidad vertical.
+- **Selector de layout híbrido**: botón en la toolbar con icono `ArrowUpDown` para activar/desactivar el modo híbrido.
+
+### Cambiado
+
+- **Intercambio de nombres horizontal↔vertical**: los modos de layout se han renombrado para que coincidan con la disposición de los hermanos: «Horizontal» ahora extiende los hijos horizontalmente (izquierda-derecha), «Vertical» apila los hermanos verticalmente (arriba-abajo). Los iconos también se han intercambiado: `LayoutGrid` para horizontal, `LayoutList` para vertical.
+
+### Técnico
+
+- Nueva función `calculateLayoutHybrid` en `src/lib/layout/layoutHybrid.ts`: niveles 0-1 hacia la derecha (raíz izquierda, hijos a la derecha apilados verticalmente), niveles 2+ hacia abajo (hijos debajo, extendidos horizontalmente).
+- Nuevo tipo `'hybrid'` en `LayoutMode` y constantes `HYBRID_LAYOUT` en `types.ts`.
+- El layout híbrido usa `smoothstep` para las aristas (como horizontal y vertical).
+- Intercambiadas las llamadas en `layout/index.ts`: `'horizontal'` → `calculateLayoutVertical`, `'vertical'` → `calculateLayoutHorizontal`.
+- Iconos intercambiados en `Toolbar.tsx` y etiquetas i18n actualizadas.
+
 ## v0.5.2 (2026-06-27)
 
 ### Nuevo

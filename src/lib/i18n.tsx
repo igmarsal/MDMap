@@ -30,9 +30,10 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Layout
     layoutMode: 'Modo de disposición',
-    layout_horizontal: 'Horizontal (derecha)',
-    layout_vertical: 'Vertical (abajo)',
+    layout_horizontal: 'Horizontal (ramas extendidas)',
+    layout_vertical: 'Vertical (ramas apiladas)',
     layout_radial: 'Radial (circular)',
+    layout_hybrid: 'Híbrido (vertical+horizontal)',
     relayout: 'Reorganizar mapa',
     fitView: 'Ver todo',
     centerSelection: 'Centrar selección',
@@ -114,9 +115,10 @@ const translations: Record<Lang, Record<string, string>> = {
 
     // Layout
     layoutMode: 'Layout mode',
-    layout_horizontal: 'Horizontal (right)',
-    layout_vertical: 'Vertical (down)',
+    layout_horizontal: 'Horizontal (branches spread)',
+    layout_vertical: 'Vertical (branches stacked)',
     layout_radial: 'Radial (circular)',
+    layout_hybrid: 'Hybrid (vertical+horizontal)',
     relayout: 'Reorganize map',
     fitView: 'Fit view',
     centerSelection: 'Center selection',

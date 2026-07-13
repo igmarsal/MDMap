@@ -14,7 +14,7 @@ export function useLayoutMode() {
       // localStorage no disponible (ej. file:// en Chrome)
     }
 
-    if (saved === 'horizontal' || saved === 'vertical' || saved === 'radial') {
+    if (saved === 'horizontal' || saved === 'vertical' || saved === 'radial' || saved === 'hybrid') {
       return saved
     }
 

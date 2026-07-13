@@ -12,7 +12,7 @@ export default memo(function MindMapEdge({
 }: EdgeProps) {
   const layoutMode: LayoutMode = data?.layoutMode || 'horizontal'
   
-  const useSmoothStep = layoutMode === 'horizontal' || layoutMode === 'vertical'
+  const useSmoothStep = layoutMode === 'horizontal' || layoutMode === 'vertical' || layoutMode === 'hybrid'
   
   const [edgePath] = useSmoothStep
     ? getSmoothStepPath({

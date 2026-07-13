@@ -1,6 +1,6 @@
 import { Button } from '../ui/Button'
 import { useI18n } from '../../lib/i18n'
-import { LayoutList, LayoutGrid, Orbit, RefreshCw, ChevronDown, ChevronRight, ListTree, Filter, Maximize, Crosshair, Check, Circle, Undo2, Redo2, Image } from 'lucide-react'
+import { LayoutList, LayoutGrid, Orbit, ArrowUpDown, RefreshCw, ChevronDown, ChevronRight, ListTree, Filter, Maximize, Crosshair, Check, Circle, Undo2, Redo2, Image } from 'lucide-react'
 import type { LayoutMode } from '../../lib/types'
 
 interface ToolbarProps {
@@ -71,13 +71,15 @@ export default function Toolbar({
   const LayoutIcon = ({ mode }: { mode: LayoutMode }) => {
     switch (mode) {
       case 'horizontal':
-        return <LayoutList className="h-4 w-4" />
-      case 'vertical':
         return <LayoutGrid className="h-4 w-4" />
+      case 'vertical':
+        return <LayoutList className="h-4 w-4" />
       case 'radial':
         return <Orbit className="h-4 w-4" />
+      case 'hybrid':
+        return <ArrowUpDown className="h-4 w-4" />
       default:
-        return <LayoutList className="h-4 w-4" />
+        return <LayoutGrid className="h-4 w-4" />
     }
   }
 
@@ -85,7 +87,7 @@ export default function Toolbar({
     <div className="absolute top-4 left-4 z-10 flex items-center gap-2 bg-card border border-border rounded-lg p-2 shadow-lg">
       {/* Layout controls */}
       <div className="flex items-center gap-1" title={t('layoutMode')}>
-        {(['horizontal', 'vertical', 'radial'] as LayoutMode[]).map((mode) => (
+        {(['horizontal', 'vertical', 'radial', 'hybrid'] as LayoutMode[]).map((mode) => (
           <Button
             key={mode}
             variant={layoutMode === mode ? 'default' : 'ghost'}
